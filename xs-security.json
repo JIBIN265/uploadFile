@@ -1,0 +1,31 @@
+{
+  "xsappname": "salesorder-msitek",
+  "description": "XSUAA Security profile of Invoice application",
+  "tenant-mode": "dedicated",
+  "scopes": [
+   {
+    "name": "uaa.user",
+    "description": "UAA"
+   }
+  ],
+  "role-templates": [
+   {
+    "name": "Token_Exchange",
+    "description": "UAA",
+    "scope-references": [
+     "uaa.user"
+    ]
+   }
+  ],
+  "attributes": [],
+  "oauth2-configuration": {
+   "redirect-uris": [
+    "https://*cfapps.us10-001.hana.ondemand.com/login/callback/**",
+    "http://localhost:5000/login/callback/**",
+    "http://*.localhost:4004/**",
+    "https://*.applicationstudio.cloud.sap/**"
+   ]
+  },
+  "authorities-inheritance": false
+ }
+ 

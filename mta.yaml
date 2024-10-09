@@ -1,0 +1,142 @@
+_schema-version: 3.3.0
+ID: salesorder
+description: A simple CAP project.
+version: 1.0.0
+modules:
+  - name: salesorder-srv
+    type: nodejs
+    path: gen/srv
+    requires:
+      - name: salesorder-auth
+      - name: salesorder-db
+      - name: salesorder-connectivity
+      - name: salesorder-destination
+      - name: salesorder-logs
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    parameters:
+      buildpack: nodejs_buildpack
+      readiness-health-check-http-endpoint: /health
+      readiness-health-check-type: http
+    build-parameters:
+      builder: npm
+  - name: salesorder-db-deployer
+    type: hdb
+    path: gen/db
+    requires:
+      - name: salesorder-db
+      - name: salesorder-logs
+    parameters:
+      buildpack: nodejs_buildpack
+  - name: salesorder
+    type: approuter.nodejs
+    path: app/router
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          forwardAuthToken: true
+          name: srv-api
+          url: ~{srv-url}
+      - name: salesorder-auth
+      - name: salesorder-destination
+    parameters:
+      disk-quota: 256M
+      keep-existing-routes: true
+      memory: 256M
+    build-parameters:
+      ignore:
+      - .env
+      - node_modules/
+      - default-env.json
+  - name: salesorder-app-deployer
+    type: com.sap.application.content
+    path: gen
+    requires:
+      - name: salesorder-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: app/
+      requires:
+        - artifacts:
+            - salesorder.zip
+          name: salesorder
+          target-path: app//
+  - name: salesorders
+    type: html5
+    path: app/salesorder
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm install
+        - npm run build:cf
+      supported-platforms: []
+resources:
+  - name: salesorder-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        tenant-mode: dedicated
+        xsappname: salesorder-msitek
+      path: ./xs-security.json
+      service: xsuaa
+      service-plan: application
+  - name: salesorder-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: salesorder-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  - name: salesorder-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            destinations:
+              - Authentication: OAuth2UserTokenExchange
+                HTML5.DynamicDestination: true
+                HTML5.ForwardAuthToken: true
+                Name: salesorder-srv-api
+                ProxyType: Internet
+                Type: HTTP
+                URL: ~{srv-api/srv-url}
+              - Authentication: NoAuthentication
+                Name: ui5
+                ProxyType: Internet
+                Type: HTTP
+                URL: https://ui5.sap.com
+            existing_destinations_policy: update
+      service: destination
+      service-plan: lite
+    requires:
+      - name: srv-api
+  - name: salesorder-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+  - name: salesorder-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+        - npx rimraf gen/db/src/gen/data

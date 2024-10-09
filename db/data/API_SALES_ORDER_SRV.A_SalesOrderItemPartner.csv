@@ -1,0 +1,1 @@
+SalesOrder,SalesOrderItem,PartnerFunction,PartnerFunctionInternalCode,Customer,Supplier,Personnel,ContactPerson,ReferenceBusinessPartner,AddressID,VATRegistration,to_SalesOrder_SalesOrder,to_SalesOrderItem_SalesOrder,to_SalesOrderItem_SalesOrderItem

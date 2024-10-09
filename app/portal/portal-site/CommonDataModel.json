@@ -1,0 +1,84 @@
+{
+  "_version": "3.0.0",
+  "identification": {
+    "title": "salesorder",
+    "id": "salesorder-flp",
+    "entityType": "bundle"
+  },
+  "payload": {
+    "catalogs": [
+      {
+        "_version": "3.0.0",
+        "identification": {
+          "id": "salesorder-catalog",
+          "title": "{{title}}",
+          "entityType": "catalog",
+          "i18n": "i18n/catalog.properties"
+        },
+        "payload": {
+          "viz": [
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "_version": "3.0.0",
+        "identification": {
+          "id": "salesorder-group",
+          "title": "{{title}}",
+          "entityType": "group",
+          "i18n": "i18n/group.properties"
+        },
+        "payload": {
+          "viz": [
+          ]
+        }
+      }
+    ],
+    "sites": [
+      {
+        "_version": "3.0.0",
+        "identification": {
+          "id": "salesorder-site",
+          "entityType": "site",
+          "title": "salesorder",
+          "description": "A simple CAP project."
+        },
+        "payload": {
+          "config": {
+            "ushellConfig": {
+              "renderers": {
+                "fiori2": {
+                  "componentData": {
+                    "config": {
+                      "applications": {
+                        "Shell-home": {}
+                      },
+                      "enableSearch": true,
+                      "enablePersonalization": true,
+                      "enableSetTheme": true,
+                      "enableSetLanguage": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "groupsOrder": ["salesorder-group"],
+          "sap.cloud.portal": {
+            "config": {
+              "theme.id": "sap_horizon",
+              "theme.active": [
+                "sap_horizon",
+                "sap_horizon_dark",
+                "sap_horizon_hcw",
+                "sap_horizon_hcb"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

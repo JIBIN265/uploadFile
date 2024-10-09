@@ -1,0 +1,96 @@
+{
+  "name": "salesorder",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-js/hana": "^1",
+    "@sap-cloud-sdk/connectivity": "^3.9.0",
+    "@sap-cloud-sdk/generator": "^3.16.0",
+    "@sap-cloud-sdk/http-client": "^3.16.0",
+    "@sap-cloud-sdk/resilience": "^3.9.0",
+    "@sap-cloud-sdk/util": "^3.16.0",
+    "@sap/cds-hana": "^2",
+    "@sap/cds-mtxs": "^1.9",
+    "@sap/eslint-plugin-cds": "^3.0.3",
+    "@sap/ux-cds-odata-language-server-extension": "^1.12.0",
+    "@sap/xsenv": "^5.2.0",
+    "@sap/xssec": "^3.6.1",
+    "axios": "^1.6.4",
+    "dotenv": "^16.3.1",
+    "express": "^4",
+    "mbt": "^1.2.28",
+    "passport": "^0",
+    "querystring": "^0.2.1"
+  },
+  "peerDependencies": {
+    "@sap/cds": "^8.3.1"
+  },
+  "devDependencies": {
+    "@cap-js/cds-types": "^0.6",
+    "@cap-js/sqlite": "^1",
+    "@sap/cds-dk": "^7",
+    "@sap/eslint-plugin-cds": "^3",
+    "@sap/ux-specification": "^1.120.17",
+    "cds-plugin-ui5": "^0.6.13",
+    "rimraf": "^3.0.2"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "cds": "npm i @sap/cds",
+    "undeploy": "cf undeploy salesorder --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+    "clean": "rimraf \"**/*mta_archives\" \"**/*gen\" \"**/*resources\" \"**/*dist\" \"**/*node_modules\" \"**/*package-lock.json\"",
+    "watch-salesorder": "cds watch --open salesorder/webapp/index.html?sap-ui-xx-viewCache=false",
+    "all": "npm run clean && npm run cds && npm run build && npm run deploy"
+  },
+  "cds": {
+    "fiori": {
+      "lean_draft": true,
+      "bypass_draft": true
+    },
+    "requires": {
+      "connectivity": true,
+      "destinations": true,
+      "html5-repo": true,
+      "API_SALES_ORDER_SRV": {
+        "kind": "odata-v2",
+        "csrf": true,
+        "csrfInBatch": true,
+        "model": "srv/external/API_SALES_ORDER_SRV",
+        "credentials": {
+          "destination": "S4HC_Sales",
+          "path": "/sap/opu/odata/sap/API_SALES_ORDER_SRV"
+        }
+      },
+      "[development]": {
+        "kind": "sqlite",
+        "auth": "dummy",
+        "impl": "@cap-js/sqlite",
+        "credentials": {
+          "url": "memory"
+        }
+      },
+      "[production]": {
+        "db": "hana",
+        "auth": "xsuaa"
+      },
+      "[hybrid]": {
+        "db": "hana",
+        "auth": "dummy"
+      }
+    },
+    "sql": {
+      "native_hana_associations": false
+    }
+  },
+  "sapux": [
+    "app/salesorder"
+  ],
+  "workspaces": [
+    "app/*"
+  ]
+}
