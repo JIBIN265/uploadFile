@@ -8,7 +8,7 @@
       "version": "0.0.1"
     },
     "title": "{{appTitle}}",
-    "description": "{{appTitle}}",
+    "description": "{{appDescription}}",
     "resources": "resources.json",
     "sourceTemplate": {
       "id": "@sap/generator-fiori:lrop",
@@ -27,8 +27,8 @@
     },
     "crossNavigation": {
       "inbounds": {
-        "salesorder-manage": {
-          "semanticObject": "salesorder",
+        "zsalesorder-manage": {
+          "semanticObject": "Zsalesorder",
           "action": "manage",
           "title": "{{flpTitle}}",
           "signature": {
@@ -196,5 +196,9 @@
   "sap.fiori": {
     "registrationIds": [],
     "archeType": "transactional"
+  },
+  "sap.cloud": {
+    "public": true,
+    "service": "hana.app"
   }
 }

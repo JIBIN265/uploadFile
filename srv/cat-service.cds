@@ -4,7 +4,7 @@ using {API_SALES_ORDER_SRV as so} from './external/API_SALES_ORDER_SRV';
 service SalesCatalogService {
     entity salesorder     as projection on persistence.SalesOrderEntity;
     entity SalesOrderItem as projection on persistence.SalesOrderEntity.to_Item;
-    // entity Attachments    as projection on persistence.AttachmentEntity;
+    // entity Files          as projection on persistence.SalesOrderEntity.to_Files;
 
     entity ApisalesOrder  as
         projection on so.A_SalesOrder {

@@ -2,6 +2,7 @@ using {
     cuid,
     managed
 } from '@sap/cds/common';
+using {Attachments} from '@cap-js/attachments';
 
 namespace zsalesorder;
 
@@ -23,12 +24,8 @@ entity SalesOrderEntity : cuid, managed {
     IncotermsClassification   : String(3);
     IncotermsLocation1        : String(100);
     CustomerPaymentTerms      : String(4);
-    FileName                  : String(255);
-    MimeType                  : String(100);
-    FileSize                  : Integer;
-    FileContent               : LargeBinary;
-    UploadDate                : DateTime;
     to_Item                   : Composition of many SalesOrderItemEntity;
+    attachments               : Composition of many Attachments;
 }
 
 aspect SalesOrderItemEntity : cuid, managed {
@@ -47,13 +44,3 @@ aspect SalesOrderItemEntity : cuid, managed {
     DeliveryGroup         : String(3);
     ShippingPoint         : String(4);
 }
-
-
-// entity AttachmentEntity : cuid, managed {
-//     SalesOrder  : Association to SalesOrderEntity;
-//     FileName    : String(255);
-//     MimeType    : String(100);
-//     FileSize    : Integer;
-//     FileContent : LargeBinary;
-//     UploadDate  : DateTime;
-// }

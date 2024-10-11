@@ -1,39 +1,38 @@
 {
   "name": "salesorder",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple CAP project.",
   "repository": "<Add your repository here>",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@cap-js/hana": "^1",
+    "@cap-js/attachments": "^1.1.7",
     "@sap-cloud-sdk/connectivity": "^3.9.0",
-    "@sap-cloud-sdk/generator": "^3.16.0",
-    "@sap-cloud-sdk/http-client": "^3.16.0",
+    "@sap-cloud-sdk/http-client": "^3.9.0",
     "@sap-cloud-sdk/resilience": "^3.9.0",
-    "@sap-cloud-sdk/util": "^3.16.0",
+    "@sap-cloud-sdk/util": "^3.9.0",
+    "@sap/approuter": "^16.9.0",
     "@sap/cds-hana": "^2",
     "@sap/cds-mtxs": "^1.9",
-    "@sap/eslint-plugin-cds": "^3.0.3",
+    "@sap/eslint-plugin-cds": "^2.6.4",
     "@sap/ux-cds-odata-language-server-extension": "^1.12.0",
     "@sap/xsenv": "^5.2.0",
     "@sap/xssec": "^3.6.1",
-    "axios": "^1.6.4",
+    "aws-cli": "^0.0.2",
+    "axios": "^1.7.7",
     "dotenv": "^16.3.1",
     "express": "^4",
-    "mbt": "^1.2.28",
-    "passport": "^0",
+    "mbt": "^1.2.31",
+    "passport": "^0.7.0",
     "querystring": "^0.2.1"
   },
   "peerDependencies": {
     "@sap/cds": "^8.3.1"
   },
   "devDependencies": {
-    "@cap-js/cds-types": "^0.6",
-    "@cap-js/sqlite": "^1",
-    "@sap/cds-dk": "^7",
-    "@sap/eslint-plugin-cds": "^3",
-    "@sap/ux-specification": "^1.120.17",
+    "@cap-js/sqlite": "^1.4.0",
+    "@sap/cds-dk": "^8.3.0",
+    "@sap/ux-specification": "^1.120.16",
     "cds-plugin-ui5": "^0.6.13",
     "rimraf": "^3.0.2"
   },
@@ -53,9 +52,40 @@
       "bypass_draft": true
     },
     "requires": {
-      "connectivity": true,
-      "destinations": true,
-      "html5-repo": true,
+      "attachments": {
+        "scan": true
+      },
+      "[development]": {
+        "kind": "sqlite",
+        "auth": "dummy",
+        "impl": "@cap-js/sqlite",
+        "credentials": {
+          "url": "memory"
+        },
+        "attachments": {
+          "scan": false,
+          "kind": "db"
+        }
+      },
+      "[production]": {
+        "db": "hana",
+        "auth": "xsuaa"
+      },
+      "[hybrid]": {
+        "auth": "mocked",
+        "attachments": {
+          "kind": "s3",
+          "scan": true
+        }
+      },
+      "BPA_WORKFLOW": {
+        "kind": "rest",
+        "csrf": true,
+        "csrfInBatch": true,
+        "credentials": {
+          "destination": "spa_process_destination"
+        }
+      },
       "API_SALES_ORDER_SRV": {
         "kind": "odata-v2",
         "csrf": true,
@@ -65,32 +95,13 @@
           "destination": "S4HC_Sales",
           "path": "/sap/opu/odata/sap/API_SALES_ORDER_SRV"
         }
-      },
-      "[development]": {
-        "kind": "sqlite",
-        "auth": "dummy",
-        "impl": "@cap-js/sqlite",
-        "credentials": {
-          "url": "memory"
-        }
-      },
-      "[production]": {
-        "db": "hana",
-        "auth": "xsuaa"
-      },
-      "[hybrid]": {
-        "db": "hana",
-        "auth": "dummy"
       }
-    },
-    "sql": {
-      "native_hana_associations": false
     }
   },
-  "sapux": [
-    "app/salesorder"
-  ],
   "workspaces": [
     "app/*"
+  ],
+  "sapux": [
+    "app/salesorder"
   ]
 }

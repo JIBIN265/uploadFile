@@ -1,5 +1,18 @@
 {
+  "welcomeFile": "app/index.html",
   "routes": [
+    {
+      "source": "/(.*)$",
+      "target": "$1",
+      "destination": "salesorder-srv",
+      "csrfProtection": false,
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/-/cds/.*",
+      "destination": "mtx-api",
+      "authenticationType": "none"
+    },
     {
       "source": "^/app/(.*)$",
       "target": "$1",
@@ -17,6 +30,5 @@
       "destination": "srv-api",
       "csrfProtection": true
     }
-  ],
-  "welcomeFile": "/cp.portal"
+  ]
 }

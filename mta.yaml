@@ -1,17 +1,19 @@
-_schema-version: 3.3.0
+_schema-version: "3.1"
 ID: salesorder
-description: A simple CAP project.
-version: 1.0.0
+description: Sales Order
+version: 1.0.4
 modules:
   - name: salesorder-srv
     type: nodejs
     path: gen/srv
     requires:
-      - name: salesorder-auth
       - name: salesorder-db
-      - name: salesorder-connectivity
-      - name: salesorder-destination
+      - name: salesorder-auth
       - name: salesorder-logs
+      - name: salesorder-connectivity
+      - name: salesorder-destination-service
+      - name: salesorder-attachments
+      - name: salesorder-malwarescanner
     provides:
       - name: srv-api
         properties:
@@ -30,7 +32,44 @@ modules:
       - name: salesorder-logs
     parameters:
       buildpack: nodejs_buildpack
-  - name: salesorder
+  - name: salesorder-destination-content
+    type: com.sap.application.content
+    requires:
+      - name: salesorder-destination-service
+        parameters:
+          content-target: true
+      - name: salesorder-malwarescanner
+        parameters:
+          service-key:
+            name: malwarescanner-key
+      - name: salesorder-repo-host
+        parameters:
+          service-key:
+            name: salesorder-repo-host-key
+      - name: salesorder-auth
+        parameters:
+          service-key:
+            name: uaa_salesorder-key
+    parameters:
+      content:
+        instance:
+          destinations:
+            - Name: hana_app_salesorder_repo_host
+              ServiceInstanceName: salesorder-html5-srv
+              ServiceKeyName: salesorder-repo-host-key
+              sap.cloud.service: hana.app
+            - Name: salesorder-malwarescanner-dest
+              ServiceInstanceName: salesorder-malwarescanner
+              ServiceKeyName: malwarescanner-key
+            - Authentication: OAuth2UserTokenExchange
+              Name: hana_app_uaa_salesorder
+              ServiceInstanceName: salesorder-xsuaa-service
+              ServiceKeyName: uaa_salesorder-key
+              sap.cloud.service: hana.app
+          existing_destinations_policy: ignore
+    build-parameters:
+      no-source: true
+  - name: salesorder-router
     type: approuter.nodejs
     path: app/router
     requires:
@@ -41,31 +80,36 @@ modules:
           name: srv-api
           url: ~{srv-url}
       - name: salesorder-auth
-      - name: salesorder-destination
+      - name: salesorder-destination-service
+        group: destinations
+        properties:
+          forwardAuthToken: false
+          name: ui5
+          url: https://ui5.sap.com
     parameters:
       disk-quota: 256M
       keep-existing-routes: true
       memory: 256M
     build-parameters:
       ignore:
-      - .env
-      - node_modules/
-      - default-env.json
-  - name: salesorder-app-deployer
+        - .env
+        - node_modules/
+        - default-env.json
+  - name: salesorder-app-content
     type: com.sap.application.content
-    path: gen
+    path: .
     requires:
-      - name: salesorder-html5-repo-host
+      - name: salesorder-repo-host
         parameters:
           content-target: true
     build-parameters:
-      build-result: app/
+      build-result: resources
       requires:
         - artifacts:
             - salesorder.zip
           name: salesorder
-          target-path: app//
-  - name: salesorders
+          target-path: resources/
+  - name: salesorder
     type: html5
     path: app/salesorder
     build-parameters:
@@ -76,26 +120,22 @@ modules:
         - npm run build:cf
       supported-platforms: []
 resources:
-  - name: salesorder-auth
-    type: org.cloudfoundry.managed-service
-    parameters:
-      config:
-        tenant-mode: dedicated
-        xsappname: salesorder-msitek
-      path: ./xs-security.json
-      service: xsuaa
-      service-plan: application
   - name: salesorder-db
     type: com.sap.xs.hdi-container
     parameters:
       service: hana
       service-plan: hdi-shared
-  - name: salesorder-connectivity
+  - name: salesorder-auth
     type: org.cloudfoundry.managed-service
     parameters:
-      service: connectivity
-      service-plan: lite
-  - name: salesorder-destination
+      config:
+        tenant-mode: dedicated
+        xsappname: salesorder-${org}-${space}
+      path: ./xs-security.json
+      service: xsuaa
+      service-name: salesorder-xsuaa-service
+      service-plan: application
+  - name: salesorder-destination-service
     type: org.cloudfoundry.managed-service
     parameters:
       config:
@@ -103,10 +143,10 @@ resources:
         init_data:
           instance:
             destinations:
-              - Authentication: OAuth2UserTokenExchange
+              - Authentication: NoAuthentication
                 HTML5.DynamicDestination: true
                 HTML5.ForwardAuthToken: true
-                Name: salesorder-srv-api
+                Name: salesorder-srv
                 ProxyType: Internet
                 Type: HTTP
                 URL: ~{srv-api/srv-url}
@@ -116,20 +156,39 @@ resources:
                 Type: HTTP
                 URL: https://ui5.sap.com
             existing_destinations_policy: update
+        version: 1.0.0
       service: destination
+      service-name: salesorder-destination-service
       service-plan: lite
     requires:
       - name: srv-api
-  - name: salesorder-html5-repo-host
+  - name: salesorder-repo-host
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
+      service-name: salesorder-html5-srv
       service-plan: app-host
   - name: salesorder-logs
     type: org.cloudfoundry.managed-service
     parameters:
       service: application-logs
       service-plan: lite
+  - name: salesorder-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  - name: salesorder-attachments
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: objectstore
+      service-plan: standard
+  - name: salesorder-malwarescanner
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: malware-scanner
+      service-name: salesorder-malwarescanner
+      service-plan: clamav
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true

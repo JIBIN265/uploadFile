@@ -35,19 +35,12 @@ sap.ui.define([
                 var sFileContent = e.target.result; // This will be a base64 string
 
                 try {
-                    debugger
-                    // var oControl = oEvent.getSource();
-                    // var oContext = oControl.getBindingContext();
-                    // if (!oContext) {
-                    //     MessageToast.show("No context found.");
-                    //     return;
-                    // }
-                    // var oModel = oContext.getModel();
                     var oData = {
-                        FileName: oFile.name,
-                        MimeType: oFile.type,
-                        FileSize: oFile.size,
-                        FileContent: sFileContent.split(",")[1] // Only base64 content without prefix
+                        to_Files: [{
+                            FileName: oFile.name,
+                            content: sFileContent.split(",")[1], // Only base64 content without prefix
+                            contentType: oFile.type,
+                        }]
                     };
 
                     var sPath = "/salesorder";
