@@ -150,26 +150,6 @@ annotate service.salesorder with @(
             Value : OrganizationDivision,
             Label : '{i18n>OrganizationDivision}',
         },
-        {
-            $Type : 'UI.DataField',
-            Value : to_Files.up_.to_Files.content,
-            Label : 'content',
-        },
-        {
-            $Type : 'UI.DataField',
-            Value : to_Files.up_.to_Files.contentType,
-            Label : 'contentType',
-        },
-        {
-            $Type : 'UI.DataField',
-            Value : to_Files.up_.to_Files.FileName,
-            Label : 'FileName',
-        },
-        {
-            $Type : 'UI.DataField',
-            Value : to_Files.up_.to_Files.ObjectId,
-            Label : 'ObjectId',
-        },
     ],
     UI.SelectionFields : [
         documentId,

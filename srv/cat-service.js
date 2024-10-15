@@ -1,10 +1,10 @@
 const cds = require('@sap/cds');
 const SequenceHelper = require("./lib/SequenceHelper");
-const { Console } = require('console');
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 class SalesCatalogService extends cds.ApplicationService {
     async init() {
-        const { salesorder, Files, SalesOrderItem, ApisalesOrder } = this.entities;
+        const { salesorder, attachments, SalesOrderItem, ApisalesOrder } = this.entities;
         const db = await cds.connect.to("db");
         const s4HanaService = await cds.connect.to("API_SALES_ORDER_SRV");
         // const cmisApi = await cds.connect.to('DMS_REPO');
@@ -24,89 +24,123 @@ class SalesCatalogService extends cds.ApplicationService {
             let number = await documentId.getNextNumber();
             req.data.documentId = number.toString();
 
-            // Create document in SAP Document Management Service
-            // if (req.data.to_Files && req.data.to_Files.length > 0) {
-            //     const file = req.data.to_Files[0];
-            //     const currentTime = new Date().toISOString().replace(/[:.-]/g, '_');
-            //     const fileName = `${req.data.documentId}_${currentTime}.${file.contentType.split('/').pop()}`;
-            //     const fileContentBuffer = Buffer.from(file.content, 'base64');
 
-            //     try {
+            //add of 13
 
-            //         const tokenResponse = await axios.post(
-            //             'https://yk2lt6xsylvfx4dz.authentication.us10.hana.ondemand.com/oauth/token',
-            //             new URLSearchParams({
-            //                 grant_type: 'client_credentials',
-            //                 client_id: 'sb-d63004e0-0505-4cbd-8f63-e3dd95a2f3c8!b220961|sdm-di-DocumentManagement-sdm_integration!b6332',
-            //                 client_secret: 'qeavgF21Rh7or3EESH3dEzaoDcQ='
-            //             }),
-            //             {
-            //                 headers: {
-            //                     'Content-Type': 'application/x-www-form-urlencoded'
-            //                 }
-            //             }
-            //         );
+            try {
 
-            //         const accessToken = tokenResponse.data.access_token;
+                const FormData = require('form-data');
+                const axios = require('axios');
+                const DocumentExtraction_Dest = await cds.connect.to('DocumentExtraction_Dest');
 
-            //         const boundary = '----WebKitFormBoundary' + Math.random().toString(16).slice(2);
-            //         const formData = new FormData();
+                const tokenResponse = await axios.post('https://yk2lt6xsylvfx4dz.authentication.us10.hana.ondemand.com/oauth/token',
+                    new URLSearchParams({
+                        grant_type: 'client_credentials',
+                        client_id: 'sb-85d7253d-72f6-496a-9a3f-d7a30d0831cf!b220961|dox-xsuaa-std-production!b9505',
+                        client_secret: 'ae70b6b9-804a-4d38-9f6d-af5043dd7256$uywq7WnT8c7sYcnNtFP6PMR3oksIwhctDuVnw_QQxYQ='
+                    }), {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
 
-            //         const multipartBody = [
-            //             `--${boundary}`,
-            //             'Content-Disposition: form-data; name="cmisaction"',
-            //             '',
-            //             'createDocument',
+                const accessToken = tokenResponse.data.access_token;
 
-            //             `--${boundary}`,
-            //             'Content-Disposition: form-data; name="propertyId[0]"',
-            //             '',
-            //             'cmis:name',
+                // Prepare the form data
+                const form = new FormData();
 
-            //             `--${boundary}`,
-            //             'Content-Disposition: form-data; name="propertyValue[0]"',
-            //             '',
-            //             fileName,
+                // Add the file to the form data
+                if (req.data.attachments && req.data.attachments.length > 0) {
+                    const attachment = req.data.attachments[0];
+                    const fileBuffer = Buffer.from(attachment.content, 'base64');
 
-            //             `--${boundary}`,
-            //             'Content-Disposition: form-data; name="cmis:objectTypeId"',
-            //             '',
-            //             'cmis:document',
+                    // Append the file to form-data
+                    form.append('file', fileBuffer, {
+                        filename: attachment.filename,
+                        contentType: attachment.mimeType
+                    });
+                }
+                const currentDate = new Date().toISOString().slice(0, 10);
+                const options = {
+                    schemaName: 'SAP_purchaseOrder_schema',
+                    clientId: 'default',
+                    documentType: 'Purchase Order',
+                    receivedDate: currentDate, // You can dynamically change the date if needed
+                    enrichment: {
+                        sender: {
+                            top: 5,
+                            type: "businessEntity",
+                            subtype: "supplier"
+                        },
+                        employee: {
+                            type: "employee"
+                        }
+                    }
+                };
 
-            //             `--${boundary}`,
-            //             `Content-Disposition: form-data; name="content"; filename="${fileName}"`,
-            //             `Content-Type: ${file.contentType}`,
-            //             '',
-            //             fileContentBuffer, // The actual file content
+                // Add the options as a single JSON string in form-data
+                form.append('options', JSON.stringify(options));
 
-            //             `--${boundary}--`,
-            //             ''
-            //         ];
+                const postResponse = await axios.post('https://aiservices-dox.cfapps.us10.hana.ondemand.com/document-information-extraction/v1/document/jobs',
+                    form, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        ...form.getHeaders()
+                    }
+                });
+                // const postResponse = await DocumentExtraction_Dest.post('/document/jobs', form, {
+                //     headers: {
+                //         // 'Authorization': `Bearer ${accessToken}`,
+                //         ...form.getHeaders() // Ensure form-data headers are added
+                //     }
+                // });
 
-            //         const bodyBuffer = Buffer.concat(multipartBody.map(part =>
-            //             Buffer.isBuffer(part) ? part : Buffer.from(part + '\r\n')
-            //         ));
+                console.log('POST Response:', postResponse);
 
-            //         // POST to CMIS API for file creation
-            //         const result = await axios.post(
-            //             'https://api-sdm-di.cfapps.us10.hana.ondemand.com/browser/02501e52-6509-4f3a-91f2-1fc29e1393fb/root',
-            //             bodyBuffer,
-            //             {
-            //                 headers: {
-            //                     'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            //                     'Authorization': `Bearer ${accessToken}`,
-            //                     'Content-Length': bodyBuffer.length // Ensure Content-Length is set
-            //                 }
-            //             }
-            //         );
-            //         console.log('Document created:', result);
-            //         // Store the document ID or other relevant information
-            //         req.data.documentReference = result.id; // Assuming the API returns an ID
-            //     } catch (error) {
-            //         console.error('Error creating document:', error);
-            //         req.error(500, `Failed to create document: ${error.message}`);
-            //     }
-            // }
+                const jobId = postResponse.data.id;
+
+                let retries = 0;
+                const maxRetries = 10;  // Maximum number of retries
+                const delayMs = 2000;   // 2 seconds delay between retries
+                let getResponse;
+
+                // Helper function to wait for a given number of milliseconds
+                const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+                // Start a loop to keep checking the status until it becomes "READY"
+                while (retries < maxRetries) {
+                    getResponse = await DocumentExtraction_Dest.get(`/document/jobs/${jobId}`);
+
+                    // Check the status field
+                    const jobStatus = getResponse.status;
+
+                    console.log(`Attempt ${retries + 1}: Current job status is '${jobStatus}'`);
+
+                    if (jobStatus === "DONE") {
+                        console.log("Job is ready!");
+                        break;  // Exit the loop when the status is "READY"
+                    }
+
+                    // Wait for a few seconds before the next retry
+                    await delay(delayMs);
+                    retries++;
+                }
+
+                // If the status is not ready after max retries, throw an error
+                if (retries === maxRetries && getResponse.status !== "DONE") {
+                    throw new Error(`Job did not reach 'DONE' status within ${maxRetries * delayMs / 1000} seconds`);
+                }
+
+                // Process the final result after the job is DONE
+                console.log('GET Response:', getResponse);
+
+                // You can now use both POST and GET response data as needed
+            } catch (error) {
+                console.error('Error in Document Extraction process:', error.response ? error.response.data : error.message);
+                req.error(500, 'Error in Document Extraction process');
+            }
+            //end of 13
+
         });
 
         // Handle the SAVE operation for sales order
@@ -164,6 +198,60 @@ class SalesCatalogService extends cds.ApplicationService {
             //     console.error('Error posting to S/4HANA:', error);
             //     req.error(500, 'Failed to create sales order in S/4HANA', error);
             // }
+        });
+
+
+        this.on('getS3File', async (req) => {
+            // Extract parameters from the request
+            const { fileName, accessKeyId, secretAccessKey } = req.data;
+
+            // Validate the inputs
+            if (!fileName || !accessKeyId || !secretAccessKey) {
+                return req.error(400, 'File name, access key ID, and secret access key are required');
+            }
+
+            // Configure S3 client with dynamic accessKeyId and secretAccessKey
+            const s3Client = new S3Client({
+                region: "us-east-1",  // assuming the region is fixed
+                credentials: {
+                    accessKeyId: accessKeyId,
+                    secretAccessKey: secretAccessKey
+                }
+            });
+
+            try {
+                // Define parameters for S3 object retrieval
+                const params = {
+                    Bucket: "hcp-28765fe3-bcf6-46d5-abdc-35a089911ca4",
+                    Key: fileName,
+                };
+
+                // Send command to S3 to retrieve the object
+                const command = new GetObjectCommand(params);
+                const response = await s3Client.send(command);
+
+                // Helper function to convert stream to string
+                const streamToString = (stream) =>
+                    new Promise((resolve, reject) => {
+                        const chunks = [];
+                        stream.on("data", (chunk) => chunks.push(chunk));
+                        stream.on("error", reject);
+                        stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+                    });
+
+                // Convert the response body (ReadableStream) to string
+                const fileContent = await streamToString(response.Body);
+
+                // Return the file content, accessKeyId, and secretAccessKey
+                return {
+                    content: fileContent,
+                    accessKeyId: accessKeyId,
+                    secretAccessKey: secretAccessKey
+                };
+            } catch (error) {
+                // Handle any errors during file retrieval
+                return req.error(500, `Failed to retrieve file from S3: ${error.message}`);
+            }
         });
 
         await super.init();

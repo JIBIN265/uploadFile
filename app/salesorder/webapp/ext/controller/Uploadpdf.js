@@ -36,10 +36,10 @@ sap.ui.define([
 
                 try {
                     var oData = {
-                        to_Files: [{
-                            FileName: oFile.name,
+                        attachments: [{
+                            filename: oFile.name,
                             content: sFileContent.split(",")[1], // Only base64 content without prefix
-                            contentType: oFile.type,
+                            mimeType: oFile.type,
                         }]
                     };
 

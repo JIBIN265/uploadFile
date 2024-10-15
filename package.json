@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.670.0",
     "@cap-js/attachments": "^1.1.7",
     "@sap-cloud-sdk/connectivity": "^3.9.0",
     "@sap-cloud-sdk/http-client": "^3.9.0",
@@ -19,9 +20,10 @@
     "@sap/xsenv": "^5.2.0",
     "@sap/xssec": "^3.6.1",
     "aws-cli": "^0.0.2",
-    "axios": "^1.7.7",
+    "axios": "0.27.2",
     "dotenv": "^16.3.1",
     "express": "^4",
+    "formidable": "^3.5.1",
     "mbt": "^1.2.31",
     "passport": "^0.7.0",
     "querystring": "^0.2.1"
@@ -38,7 +40,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "cds": "npm i @sap/cds",
+    "cds": "npm i @sap/cds && npm add @cap-js/attachments",
     "undeploy": "cf undeploy salesorder --delete-services --delete-service-keys --delete-service-brokers",
     "build": "rimraf resources mta_archives && mbt build --mtar archive",
     "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
@@ -84,6 +86,14 @@
         "csrfInBatch": true,
         "credentials": {
           "destination": "spa_process_destination"
+        }
+      },
+      "DocumentExtraction_Dest": {
+        "kind": "rest",
+        "csrf": true,
+        "csrfInBatch": true,
+        "credentials": {
+          "destination": "DocumentExtraction_Dest"
         }
       },
       "API_SALES_ORDER_SRV": {
