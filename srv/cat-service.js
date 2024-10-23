@@ -13,8 +13,8 @@ const CLIENT_CREDENTIALS = {
     client_id: 'sb-59a2e4c8-d749-4ec5-bd0b-707fa71bd9db!b476844|na-f20548c0-157d-417b-8bbb-1c9f35ecfb2d!b20821',
     client_secret: '7ee9001b-f27e-4520-af59-129504ff79e4$mdDfPjT0dtZheMxJ-qHSmicAzM-KUVsH8dpR0Hfcmyg='
 };
-const MAX_RETRIES = 10;
-const RETRY_DELAY_MS = 2000;
+const MAX_RETRIES = 30;
+const RETRY_DELAY_MS = 3000;
 
 class SalesCatalogService extends cds.ApplicationService {
     init() {
@@ -49,11 +49,11 @@ class SalesCatalogService extends cds.ApplicationService {
         }).getNextNumber()
             .then(documentId => {
                 req.data.documentId = documentId.toString();
-                
+
                 if (req.data.attachments?.length > 0) {
                     return this.getAccessToken()
-                        .then(accessToken => 
-                            this.submitDocumentForExtraction(req.data.attachments[0], accessToken)
+                        .then(accessToken =>
+                            this.submitDocumentForExtraction(req.data.attachments[0], accessToken, req)
                         )
                         .catch(error => {
                             console.error('Error in Document Extraction process:', error.message);
@@ -69,7 +69,7 @@ class SalesCatalogService extends cds.ApplicationService {
         }).then(response => response.data.access_token);
     }
 
-    submitDocumentForExtraction(attachment, accessToken) {
+    submitDocumentForExtraction(attachment, accessToken, req) {
         const form = new FormData();
         const fileBuffer = Buffer.from(attachment.content, 'base64');
         form.append('file', fileBuffer, { filename: attachment.filename, contentType: attachment.mimeType });
@@ -89,20 +89,20 @@ class SalesCatalogService extends cds.ApplicationService {
         return axios.post(DOX_API_URL, form, {
             headers: { 'Authorization': `Bearer ${accessToken}`, ...form.getHeaders() }
         })
-        .then(postResponse => {
-            const jobId = postResponse.data.id;
-            return this.pollForJobCompletion(jobId);
-        });
+            .then(postResponse => {
+                const jobId = postResponse.data.id;
+                return this.pollForJobCompletion(jobId, 0, req);
+            });
     }
 
-    pollForJobCompletion(jobId, retries = 0) {
+    pollForJobCompletion(jobId, retries = 0, req) {
         return this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`)
             .then(getResponse => {
                 console.log(`Attempt ${retries + 1}: Current job status is '${getResponse.status}'`);
 
                 if (getResponse.status === "DONE") {
                     console.log("Job is ready!");
-                    return this.handleExtractionResults(jobId);
+                    return this.handleExtractionResults(jobId, req);
                 }
 
                 if (retries >= MAX_RETRIES) {
@@ -110,19 +110,30 @@ class SalesCatalogService extends cds.ApplicationService {
                 }
 
                 return new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
-                    .then(() => this.pollForJobCompletion(jobId, retries + 1));
+                    .then(() => this.pollForJobCompletion(jobId, retries + 1, req));
             });
     }
 
-    handleExtractionResults(jobId) {
+    handleExtractionResults(jobId, req) {
         return this.getExtractionResults(jobId)
             .then(extractionResults => this.mapExtractionToSalesOrder(extractionResults))
-            .then(salesOrderPayload => this.createSalesOrderInS4HANA(salesOrderPayload));
+            .then(salesOrderPayload => this.createSalesOrderInS4HANA(salesOrderPayload, req));
     }
 
     getExtractionResults(jobId) {
         return this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`)
             .then(response => response.extraction);
+    }
+
+    deleteExtractionDocument(jobId) {
+        return this.DocumentExtraction_Dest.delete(`/document/jobs/${jobId}`)
+            .then(() => {
+                console.log(`Successfully deleted document job ${jobId}`);
+            })
+            .catch(error => {
+                console.error(`Error deleting document job ${jobId}:`, error);
+                throw new Error('Failed to delete extraction document');
+            });
     }
 
     mapExtractionToSalesOrder(extraction) {
@@ -170,8 +181,8 @@ class SalesCatalogService extends cds.ApplicationService {
         ]).then(([soldToResponse, shipToResponse]) => {
             return {
                 SalesOrderType: 'OR',
-                SoldToParty: '1000294',//shipToResponse.BusinessPartner,//soldToResponse.BusinessPartner, //? shipToResponse.BusinessPartner : null),
-                TransactionCurrency: headerFields.currencyCode  || '',
+                SoldToParty: '1000294', //shipToResponse.BusinessPartner,//soldToResponse.BusinessPartner, //? shipToResponse.BusinessPartner : null),
+                TransactionCurrency: headerFields.currencyCode || '',
                 SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
                 RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
                 to_Item: {
@@ -186,18 +197,33 @@ class SalesCatalogService extends cds.ApplicationService {
         });
     }
 
-    createSalesOrderInS4HANA(payload) {
+    createSalesOrderInS4HANA(payload, req) {
         return this.s4HanaSales.run(
             INSERT.into('A_SalesOrder').entries(payload)
         )
-        .then(response => {
-            console.log('S/4HANA response:', response);
-            return response.SalesOrder;
-        })
-        .catch(error => {
-            console.error('Error posting to S/4HANA:', error);
-            throw new Error('Failed to create sales order in S/4HANA');
-        });
+            .then(response => {
+                console.log('S/4HANA response:', response);
+                // Update request data with response values
+                req.data.SalesOrder = response.SalesOrder;
+                req.data.SalesOrderType = response.SalesOrderType;
+                req.data.TransactionCurrency = response.TransactionCurrency;
+                req.data.SalesOrderDate = response.SalesOrderDate;
+                req.data.RequestedDeliveryDate = response.RequestedDeliveryDate;
+                req.data.PricingDate = response.PricingDate;
+                req.data.ShippingCondition = response.ShippingCondition;
+                req.data.to_Item = payload.to_Item.results.map((item, index) => ({
+                    SalesOrderItem: String((index + 1) * 10),
+                    Material: item.Material || '',
+                    SalesOrderItemText: item.SalesOrderItemText || '',
+                    RequestedQuantity: item.RequestedQuantity || 0
+                }));
+
+                return response.SalesOrder;
+            })
+            .catch(error => {
+                console.error('Error posting to S/4HANA:', error);
+                throw new Error('Failed to create sales order in S/4HANA');
+            });
     }
 
     handleSaveSalesOrder(req) {
@@ -240,14 +266,14 @@ class SalesCatalogService extends cds.ApplicationService {
         return this.s4HanaSales.run(
             INSERT.into('A_SalesOrder').entries(payload)
         )
-        .then(response => {
-            console.log('S/4HANA response:', response);
-            req.data.SalesOrder = response.SalesOrder;
-        })
-        .catch(error => {
-            console.error('Error posting to S/4HANA:', error);
-            req.error(500, 'Failed to create sales order in S/4HANA', error);
-        });
+            .then(response => {
+                console.log('S/4HANA response:', response);
+                req.data.SalesOrder = response.SalesOrder;
+            })
+            .catch(error => {
+                console.error('Error posting to S/4HANA:', error);
+                req.error(500, 'Failed to create sales order in S/4HANA', error);
+            });
     }
 
     handleS3FileRetrieval(req) {
@@ -256,14 +282,14 @@ class SalesCatalogService extends cds.ApplicationService {
             return req.error(400, 'File name, access key ID, and secret access key are required');
         }
 
-        const s3Client = new S3Client({ 
-            region: AWS_REGION, 
+        const s3Client = new S3Client({
+            region: AWS_REGION,
             credentials: { accessKeyId, secretAccessKey }
         });
 
-        const command = new GetObjectCommand({ 
-            Bucket: BUCKET_NAME, 
-            Key: fileName 
+        const command = new GetObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: fileName
         });
 
         return s3Client.send(command)

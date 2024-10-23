@@ -107,6 +107,11 @@ annotate service.salesorder with @(
         },
         {
             $Type : 'UI.DataField',
+            Value : SoldToParty,
+            Label : '{i18n>SoldToParty}',
+        },
+        {
+            $Type : 'UI.DataField',
             Label : 'SalesOrderType',
             Value : SalesOrderType,
         },
@@ -114,6 +119,11 @@ annotate service.salesorder with @(
             $Type : 'UI.DataField',
             Label : '{i18n>SalesOrganization}',
             Value : SalesOrganization,
+        },
+        {
+            $Type : 'UI.DataField',
+            Value : Status,
+            Label : '{i18n>Status}',
         },
         {
             $Type : 'UI.DataField',
@@ -132,23 +142,13 @@ annotate service.salesorder with @(
         },
         {
             $Type : 'UI.DataField',
-            Value : TransactionCurrency,
-            Label : '{i18n>TransactionCurrency}',
-        },
-        {
-            $Type : 'UI.DataField',
-            Value : SoldToParty,
-            Label : '{i18n>SoldToParty}',
-        },
-        {
-            $Type : 'UI.DataField',
             Value : PricingDate,
             Label : '{i18n>PricingDate}',
         },
         {
             $Type : 'UI.DataField',
-            Value : OrganizationDivision,
-            Label : '{i18n>OrganizationDivision}',
+            Value : TransactionCurrency,
+            Label : '{i18n>TransactionCurrency}',
         },
     ],
     UI.SelectionFields : [
