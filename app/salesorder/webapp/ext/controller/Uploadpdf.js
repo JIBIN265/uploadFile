@@ -7,9 +7,11 @@ sap.ui.define([
         "use strict";
 
         // Function to upload the file
-        var uploadFile = function (oEvent, oDialog, oModel) {
+        var uploadFile = function (oEvent, oDialog, oModel, oActualEvent) {
+            debugger
             var oFileUploader = Fragment.byId("uploadPdfFragment", "uploadSet");
-            var aItems = oFileUploader.getItems();
+            // var aItems = oFileUploader.getItems();
+            var aItems = oFileUploader.getAggregation("incompleteItems");
 
             if (aItems.length === 0) {
                 MessageToast.show("Please choose a file first.");
@@ -32,14 +34,17 @@ sap.ui.define([
             // Read file as Base64 using FileReader API
             var reader = new FileReader();
             reader.onload = async function (e) {
-                var sFileContent = e.target.result; // This will be a base64 string
 
                 try {
+
+                    const fileUrl = URL.createObjectURL(oFile);
+
                     var oData = {
                         attachments: [{
                             filename: oFile.name,
-                            content: sFileContent.split(",")[1], // Only base64 content without prefix
                             mimeType: oFile.type,
+                            url: fileUrl,  // Add the URL
+                            content: e.target.result.split(',')[1] 
                         }]
                     };
 
@@ -65,7 +70,7 @@ sap.ui.define([
         // Return the module with methods
         return {
             // Function to open the upload dialog
-            UploadPdf: function (oEvent) {
+            UploadPdf: function (oActualEvent) {
                 var that = this;
                 var oModel = this.getModel();
 
@@ -83,7 +88,7 @@ sap.ui.define([
                         that.oDialog.setBeginButton(new Button({
                             text: "Upload",
                             press: function (oEvent) {
-                                uploadFile(oEvent, that.oDialog, oModel);
+                                uploadFile(oEvent, that.oDialog, oModel, oActualEvent);
                             }
                         }));
 

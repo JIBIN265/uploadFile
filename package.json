@@ -53,6 +53,11 @@
       "lean_draft": true,
       "bypass_draft": true
     },
+    "server": {
+      "body_parser": {
+        "limit": "1mb"
+      }
+    },
     "requires": {
       "attachments": {
         "scan": true
@@ -104,6 +109,16 @@
         "credentials": {
           "destination": "S4HC_Sales",
           "path": "/sap/opu/odata/sap/API_SALES_ORDER_SRV"
+        }
+      },
+      "API_BUSINESS_PARTNER": {
+        "kind": "odata-v2",
+        "model": "srv/external/API_BUSINESS_PARTNER",
+        "csrf": true,
+        "csrfInBatch": true,
+        "credentials": {
+          "destination": "S4HC_Sales",
+          "path": "/sap/opu/odata/sap/API_BUSINESS_PARTNER"
         }
       }
     }

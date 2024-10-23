@@ -1,0 +1,1 @@
+BusinessPartner,PaymentCardID,PaymentCardType,CardNumber,IsStandardCard,CardDescription,ValidityDate,ValidityEndDate,CardHolder,CardIssuingBank,CardIssueDate,PaymentCardLock,MaskedCardNumber

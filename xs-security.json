@@ -1,5 +1,5 @@
 {
-    "xsappname": "salesorder-${org}-${space}",
+    "xsappname": "salesorder-msitek",
     "description": "XSUAA Security profile of salesorder application",
     "tenant-mode": "dedicated",
     "scopes": [

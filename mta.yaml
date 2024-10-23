@@ -118,7 +118,8 @@ modules:
       commands:
         - npm install
         - npm run build:cf
-      supported-platforms: []
+      supported-platforms:
+        []
 resources:
   - name: salesorder-db
     type: com.sap.xs.hdi-container
@@ -130,7 +131,7 @@ resources:
     parameters:
       config:
         tenant-mode: dedicated
-        xsappname: salesorder-${org}-${space}
+        xsappname: salesorder-msitek
       path: ./xs-security.json
       service: xsuaa
       service-name: salesorder-xsuaa-service

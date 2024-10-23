@@ -6,69 +6,70 @@ const FormData = require('form-data');
 
 const AWS_REGION = "us-east-1";
 const BUCKET_NAME = "hcp-28765fe3-bcf6-46d5-abdc-35a089911ca4";
-const OAUTH_URL = 'https://yk2lt6xsylvfx4dz.authentication.us10.hana.ondemand.com/oauth/token';
-const DOX_API_URL = 'https://aiservices-dox.cfapps.us10.hana.ondemand.com/document-information-extraction/v1/document/jobs';
+const OAUTH_URL = 'https://partdb-msi.authentication.eu10.hana.ondemand.com/oauth/token';
+const DOX_API_URL = 'https://aiservices-dox.cfapps.eu10.hana.ondemand.com/document-information-extraction/v1/document/jobs';
 const CLIENT_CREDENTIALS = {
     grant_type: 'client_credentials',
-    client_id: 'sb-85d7253d-72f6-496a-9a3f-d7a30d0831cf!b220961|dox-xsuaa-std-production!b9505',
-    client_secret: 'ae70b6b9-804a-4d38-9f6d-af5043dd7256$uywq7WnT8c7sYcnNtFP6PMR3oksIwhctDuVnw_QQxYQ='
+    client_id: 'sb-59a2e4c8-d749-4ec5-bd0b-707fa71bd9db!b476844|na-f20548c0-157d-417b-8bbb-1c9f35ecfb2d!b20821',
+    client_secret: '7ee9001b-f27e-4520-af59-129504ff79e4$mdDfPjT0dtZheMxJ-qHSmicAzM-KUVsH8dpR0Hfcmyg='
 };
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 2000;
 
 class SalesCatalogService extends cds.ApplicationService {
-    async init() {
-        const { salesorder } = this.entities;
-        const db = await cds.connect.to("db");
-        this.s4HanaService = await cds.connect.to("API_SALES_ORDER_SRV");
-        this.DocumentExtraction_Dest = await cds.connect.to('DocumentExtraction_Dest');
+    init() {
+        return Promise.all([
+            cds.connect.to("db"),
+            cds.connect.to("API_SALES_ORDER_SRV"),
+            cds.connect.to("API_BUSINESS_PARTNER"),
+            cds.connect.to('DocumentExtraction_Dest')
+        ]).then(([db, s4HanaSales, s4HanaBP, DocumentExtraction_Dest]) => {
+            this.db = db;
+            this.s4HanaSales = s4HanaSales;
+            this.s4HanaBP = s4HanaBP;
+            this.DocumentExtraction_Dest = DocumentExtraction_Dest;
 
-        // Handle the creation of a new draft sales order
-        this.before("NEW", salesorder.drafts, this.handleNewSalesOrder.bind(this, db));
+            const { salesorder } = this.entities;
 
-        // Handle the SAVE operation for sales order
-        this.before('SAVE', salesorder, this.handleSaveSalesOrder);
+            this.before("NEW", salesorder.drafts, (req) => this.handleNewSalesOrder(db, req));
+            this.before('SAVE', salesorder, this.handleSaveSalesOrder.bind(this));
+            this.on('getS3File', this.handleS3FileRetrieval.bind(this));
+            this.on('processExtractionResults', this.handleExtractionResults.bind(this));
 
-        // Handle S3 file retrieval
-        this.on('getS3File', this.handleS3FileRetrieval);
-
-        // Add a new handler for processing extraction results
-        this.on('processExtractionResults', this.handleExtractionResults);
-
-        await super.init();
+            return super.init();
+        });
     }
 
-    // Handler for creating a new sales order
-    async handleNewSalesOrder(db, req) {
-        const documentId = await new SequenceHelper({
+    handleNewSalesOrder(db, req) {
+        return new SequenceHelper({
             db,
             sequence: "ZSALES_DOCUMENT_ID",
             table: "zsalesorder_SalesOrderEntity",
             field: "documentId",
-        }).getNextNumber();
-        req.data.documentId = documentId.toString();
-
-        if (req.data.attachments?.length > 0) {
-            try {
-                const accessToken = await this.getAccessToken();
-                await this.submitDocumentForExtraction(req.data.attachments[0], accessToken);
-            } catch (error) {
-                console.error('Error in Document Extraction process:', error.message);
-                req.error(500, 'Error in Document Extraction process');
-            }
-        }
+        }).getNextNumber()
+            .then(documentId => {
+                req.data.documentId = documentId.toString();
+                
+                if (req.data.attachments?.length > 0) {
+                    return this.getAccessToken()
+                        .then(accessToken => 
+                            this.submitDocumentForExtraction(req.data.attachments[0], accessToken)
+                        )
+                        .catch(error => {
+                            console.error('Error in Document Extraction process:', error.message);
+                            req.error(500, 'Error in Document Extraction process');
+                        });
+                }
+            });
     }
 
-    // Helper to get OAuth token
-    async getAccessToken() {
-        const tokenResponse = await axios.post(OAUTH_URL, new URLSearchParams(CLIENT_CREDENTIALS), {
+    getAccessToken() {
+        return axios.post(OAUTH_URL, new URLSearchParams(CLIENT_CREDENTIALS), {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        return tokenResponse.data.access_token;
+        }).then(response => response.data.access_token);
     }
 
-    // Helper to submit document for extraction
-    async submitDocumentForExtraction(attachment, accessToken) {
+    submitDocumentForExtraction(attachment, accessToken) {
         const form = new FormData();
         const fileBuffer = Buffer.from(attachment.content, 'base64');
         form.append('file', fileBuffer, { filename: attachment.filename, contentType: attachment.mimeType });
@@ -85,50 +86,45 @@ class SalesCatalogService extends cds.ApplicationService {
         };
         form.append('options', JSON.stringify(options));
 
-        const postResponse = await axios.post(DOX_API_URL, form, {
+        return axios.post(DOX_API_URL, form, {
             headers: { 'Authorization': `Bearer ${accessToken}`, ...form.getHeaders() }
+        })
+        .then(postResponse => {
+            const jobId = postResponse.data.id;
+            return this.pollForJobCompletion(jobId);
         });
-
-        const jobId = postResponse.data.id;
-        await this.pollForJobCompletion(jobId);
     }
 
-    // Helper to poll for document extraction job completion
-    async pollForJobCompletion(jobId) {
-        for (let retries = 0; retries < MAX_RETRIES; retries++) {
-            const getResponse = await this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`);
-            console.log(`Attempt ${retries + 1}: Current job status is '${getResponse.status}'`);
+    pollForJobCompletion(jobId, retries = 0) {
+        return this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`)
+            .then(getResponse => {
+                console.log(`Attempt ${retries + 1}: Current job status is '${getResponse.status}'`);
 
-            if (getResponse.status === "DONE") {
-                console.log("Job is ready!");
-                await this.handleExtractionResults(jobId);
-                return;
-            }
+                if (getResponse.status === "DONE") {
+                    console.log("Job is ready!");
+                    return this.handleExtractionResults(jobId);
+                }
 
-            await this.delay(RETRY_DELAY_MS);
-        }
-        throw new Error(`Job did not reach 'DONE' status after ${MAX_RETRIES} attempts`);
+                if (retries >= MAX_RETRIES) {
+                    throw new Error(`Job did not reach 'DONE' status after ${MAX_RETRIES} attempts`);
+                }
+
+                return new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
+                    .then(() => this.pollForJobCompletion(jobId, retries + 1));
+            });
     }
 
-    // Helper to introduce delay between retries
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    handleExtractionResults(jobId) {
+        return this.getExtractionResults(jobId)
+            .then(extractionResults => this.mapExtractionToSalesOrder(extractionResults))
+            .then(salesOrderPayload => this.createSalesOrderInS4HANA(salesOrderPayload));
     }
 
-    // New method to handle extraction results
-    async handleExtractionResults(jobId) {
-        const extractionResults = await this.getExtractionResults(jobId);
-        const salesOrderPayload = this.mapExtractionToSalesOrder(extractionResults);
-        await this.createSalesOrderInS4HANA(salesOrderPayload);
+    getExtractionResults(jobId) {
+        return this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`)
+            .then(response => response.extraction);
     }
 
-    // Helper method to get extraction results
-    async getExtractionResults(jobId) {
-        const response = await this.DocumentExtraction_Dest.get(`/document/jobs/${jobId}`);
-        return response.extraction;
-    }
-
-    // Helper method to map extraction results to sales order payload
     mapExtractionToSalesOrder(extraction) {
         const headerFields = extraction.headerFields.reduce((acc, field) => {
             acc[field.name] = field.value;
@@ -142,64 +138,69 @@ class SalesCatalogService extends cds.ApplicationService {
             }, {});
         });
 
-        return {
-            SalesOrderType: 'OR', // Default value, adjust as needed
-            SalesOrganization: '1000', // Default value, adjust as needed
-            DistributionChannel: '10', // Default value, adjust as needed
-            OrganizationDivision: '00', // Default value, adjust as needed
-            SoldToParty: headerFields.soldToParty || '',
-            PurchaseOrderByCustomer: headerFields.purchaseOrderNumber || '',
-            TransactionCurrency: headerFields.currency || 'USD',
-            SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
-            PricingDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
-            RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
-            ShippingCondition: headerFields.shippingCondition || '',
-            CompleteDeliveryIsDefined: false,
-            IncotermsClassification: headerFields.incoterms || '',
-            IncotermsLocation1: headerFields.incotermsLocation || '',
-            CustomerPaymentTerms: headerFields.paymentTerms || '',
-            to_Item: {
-                results: lineItems.map((item, index) => ({
-                    SalesOrderItem: (index + 1) * 10,
-                    Material: item.materialNumber || '',
-                    SalesOrderItemText: item.description || '',
-                    RequestedQuantity: parseFloat(item.quantity) || 0,
-                    RequestedQuantityUnit: item.unit || 'EA',
-                    ItemGrossWeight: parseFloat(item.grossWeight) || 0,
-                    ItemNetWeight: parseFloat(item.netWeight) || 0,
-                    ItemWeightUnit: item.weightUnit || 'KG',
-                    NetAmount: parseFloat(item.netAmount) || 0,
-                    MaterialGroup: item.materialGroup || '',
-                    ProductionPlant: item.productionPlant || '',
-                    StorageLocation: item.storageLocation || '',
-                    DeliveryGroup: item.deliveryGroup || '',
-                    ShippingPoint: item.shippingPoint || ''
-                }))
-            }
-        };
+        return Promise.all([
+            this.s4HanaBP.run(
+                SELECT.one.from('A_BusinessPartnerAddress')
+                    .where({
+                        // BusinessPartnerFullName: headerFields.senderName,
+                        StreetName: headerFields.senderStreet,
+                        HouseNumber: headerFields.senderHouseNumber,
+                        CityName: headerFields.senderCity,
+                        PostalCode: headerFields.senderPostalCode,
+                        Region: headerFields.senderState,
+                        // Country: headerFields.senderCountryCode
+                    })
+            ).catch(error => {
+                console.error(`Error fetching Sold-to Party: ${error.message}`);
+                return null;
+            }),
+            this.s4HanaBP.run(
+                SELECT.one.from('A_BusinessPartnerAddress')
+                    .where({
+                        // StreetName: headerFields.shipToStreet,
+                        HouseNumber: headerFields.shipToHouseNumber,
+                        CityName: headerFields.shipToCity,
+                        PostalCode: headerFields.shipToPostalCode,
+                        Region: headerFields.shipToState
+                    })
+            ).catch(error => {
+                console.error(`Error fetching Ship-to Party: ${error.message}`);
+                return null;
+            })
+        ]).then(([soldToResponse, shipToResponse]) => {
+            return {
+                SalesOrderType: 'OR',
+                SoldToParty: '1000294',//shipToResponse.BusinessPartner,//soldToResponse.BusinessPartner, //? shipToResponse.BusinessPartner : null),
+                TransactionCurrency: headerFields.currencyCode  || '',
+                SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
+                RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
+                to_Item: {
+                    results: lineItems.map((item, index) => ({
+                        SalesOrderItem: String((index + 1) * 10),
+                        Material: item.customerMaterialNumber || '',
+                        SalesOrderItemText: item.description || '',
+                        RequestedQuantity: parseFloat(item.quantity) || 0
+                    }))
+                }
+            };
+        });
     }
 
-    // Helper method to create sales order in S/4HANA
-    async createSalesOrderInS4HANA(payload) {
-        try {
-            const response = await this.s4HanaService.run(
-                INSERT.into('A_SalesOrder').entries(payload)
-            );
+    createSalesOrderInS4HANA(payload) {
+        return this.s4HanaSales.run(
+            INSERT.into('A_SalesOrder').entries(payload)
+        )
+        .then(response => {
             console.log('S/4HANA response:', response);
             return response.SalesOrder;
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('Error posting to S/4HANA:', error);
             throw new Error('Failed to create sales order in S/4HANA');
-        }
+        });
     }
 
-    // Handler for saving sales order
-    async handleSaveSalesOrder(req) {
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            return `/Date(${date.getTime()})/`;
-        };
-
+    handleSaveSalesOrder(req) {
         const payload = {
             SalesOrderType: req.data.SalesOrderType,
             SalesOrganization: req.data.SalesOrganization,
@@ -236,36 +237,47 @@ class SalesCatalogService extends cds.ApplicationService {
             }
         };
 
-        // Post the payload to S/4HANA OData service using srv.run
-        try {
-            const response = await this.s4HanaService.run(
-                INSERT.into('A_SalesOrder').entries(payload)
-            );
+        return this.s4HanaSales.run(
+            INSERT.into('A_SalesOrder').entries(payload)
+        )
+        .then(response => {
             console.log('S/4HANA response:', response);
             req.data.SalesOrder = response.SalesOrder;
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('Error posting to S/4HANA:', error);
             req.error(500, 'Failed to create sales order in S/4HANA', error);
-        }
+        });
     }
 
-    // Handler for S3 file retrieval
-    async handleS3FileRetrieval(req) {
+    handleS3FileRetrieval(req) {
         const { fileName, accessKeyId, secretAccessKey } = req.data;
-        if (!fileName || !accessKeyId || !secretAccessKey) return req.error(400, 'File name, access key ID, and secret access key are required');
-
-        const s3Client = new S3Client({ region: AWS_REGION, credentials: { accessKeyId, secretAccessKey } });
-        try {
-            const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileName });
-            const response = await s3Client.send(command);
-            const fileContent = await this.streamToString(response.Body);
-            return { content: fileContent, accessKeyId, secretAccessKey };
-        } catch (error) {
-            return req.error(500, `Failed to retrieve file from S3: ${error.message}`);
+        if (!fileName || !accessKeyId || !secretAccessKey) {
+            return req.error(400, 'File name, access key ID, and secret access key are required');
         }
+
+        const s3Client = new S3Client({ 
+            region: AWS_REGION, 
+            credentials: { accessKeyId, secretAccessKey }
+        });
+
+        const command = new GetObjectCommand({ 
+            Bucket: BUCKET_NAME, 
+            Key: fileName 
+        });
+
+        return s3Client.send(command)
+            .then(response => this.streamToString(response.Body))
+            .then(fileContent => ({
+                content: fileContent,
+                accessKeyId,
+                secretAccessKey
+            }))
+            .catch(error => {
+                return req.error(500, `Failed to retrieve file from S3: ${error.message}`);
+            });
     }
 
-    // Helper to convert stream to string
     streamToString(stream) {
         return new Promise((resolve, reject) => {
             const chunks = [];

@@ -17,9 +17,9 @@
             <upload:UploadSet 
                 mode="SingleSelect"
                 uploadEnabled="true"
-                instantUpload="true"
+                instantUpload="false"
                 id="uploadSet"
-                items="{path: '/', templateShareable: false}"
+                items="{path: '', templateShareable: false}"
                 maxFileNameLength="128"
                 multiple="false"
                 fileTypes="pdf"
@@ -32,7 +32,6 @@
                         visibleEdit="false"
                         selected="true"
                         fileName="{name}"
-                        url="/upload"
                     />
                 </upload:items>
             </upload:UploadSet>
