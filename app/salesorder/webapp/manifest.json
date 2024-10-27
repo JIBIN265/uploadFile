@@ -187,6 +187,18 @@
                     "selectAll": true,
                     "type": "GridTable"
                   }
+                },
+                "attachments/@com.sap.vocabularies.UI.v1.LineItem": {
+                  "actions": {
+                    "viewpdf": {
+                      "press": "salesorder.ext.controller.Viewpdf.viewpdf",
+                      "visible": true,
+                      "enableOnSelect": "single",
+                      "enabled": true,
+                      "requiresSelection": true,
+                      "text": "View PDF"
+                    }
+                  }
                 }
               }
             }
