@@ -7,7 +7,7 @@ sap.ui.define([
     var isUploading = false;
 
     // Function to upload the file
-    var uploadFile = function (oEvent, oDialog, oModel, oActualEvent) {
+    var uploadFile = function (oEvent, oDialog, oModel, oEditFlow) {
         var oFileUploader = Fragment.byId("uploadPdfFragment", "uploadSet");
         var aItems = oFileUploader.getAggregation("incompleteItems");
 
@@ -45,13 +45,29 @@ sap.ui.define([
                 var sPath = "/salesorder";
                 var oListBinding = oModel.bindList(sPath);
 
-                // Await the create operation and refresh binding
-                var oContext = await oListBinding.create(oData);
-                await oContext.created();
                 debugger
-                oModel.refresh(true); 
+                let sActionName = "processDocument";
+                let mParameters = {
+                    // contexts: oEvent.getSource().getBindingContext(),
+                    model: oEditFlow.getView().getModel(),
+                    // label: 'Confirm',
+                    parameterValues: [{name:'salesOrder', value: oData}],
+                    invocationGrouping: 'isolated',
+                    skipParameterDialog: true
+                };
 
-                MessageToast.show("File uploaded successfully!");
+                oEditFlow.invokeAction(sActionName, mParameters).then(function (response) {
+                    debugger
+                    MessageToast.show('successfully created FE');
+                });
+
+                // Await the create operation and refresh binding
+                // var oContext = await oListBinding.create(oData);
+                // await oContext.created();
+                // debugger
+                // const documentId = oContext.getProperty("documentId");
+
+                MessageToast.show("File processed successfully!");
 
             } catch (oError) {
                 MessageToast.show("Error uploading file: " + oError.message);
@@ -76,6 +92,9 @@ sap.ui.define([
         UploadPdf: function (oActualEvent) {
             var that = this;
             var oModel = this.getModel();
+            debugger
+            var oEditFlow = this.getEditFlow();
+
 
             isUploading = true;
 
@@ -93,7 +112,7 @@ sap.ui.define([
                     that.oDialog.setBeginButton(new Button({
                         text: "Upload",
                         press: function (oEvent) {
-                            uploadFile(oEvent, that.oDialog, oModel, oActualEvent);
+                            uploadFile(oEvent, that.oDialog, oModel, oEditFlow);
                         }
                     }));
 

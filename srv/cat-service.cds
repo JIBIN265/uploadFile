@@ -27,11 +27,9 @@ service SalesCatalogService {
     action getS3File(fileName : String, accessKeyId : String, secretAccessKey : String) returns {
         content : String;
         accessKeyId : String;
-        secretAccessKey : String
+        secretAccessKey : String;
     };
 
-    // @Common.SideEffects: {TargetProperties: ['/zsalesorder.SalesCatalogService.EntityContainer/salesorder']}
-    // action unBoundAction(input : attachments);
-
-
+    @Common.SideEffects: {TargetEntities: ['/SalesCatalogService.EntityContainer/salesorder']}
+    action processDocument(salesOrder : salesorder)                                     returns salesorder;
 }

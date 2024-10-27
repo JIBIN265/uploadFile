@@ -35,32 +35,54 @@ class SalesCatalogService extends cds.ApplicationService {
             this.before('SAVE', salesorder, this.handleSaveSalesOrder.bind(this));
             this.on('getS3File', this.handleS3FileRetrieval.bind(this));
             this.on('processExtractionResults', this.handleExtractionResults.bind(this));
-
+            // this.on('processDocument', (req) => this.handleProcessDocument(req,salesorder,db));
+            this.on('processDocument', async (req) => {
+                const newSalesorder = Object.assign({}, req.data.salesOrder);
+                newSalesorder.DraftAdministrativeData_DraftUUID = cds.utils.uuid();
+                const oSalesorder = await this.send({
+                    query: INSERT.into(salesorder).entries(newSalesorder),
+                    event: "NEW",
+                });
+                // const result = await this.handleProcessDocument(oSalesorder);
+                // if (!result.success) {
+                //     req.error(500, result.message);
+                // }
+                req.notify("Order has been successfully created");
+                return oSalesorder;
+            });
             return super.init();
         });
     }
 
-    handleNewSalesOrder(db, req) {
-        return new SequenceHelper({
+    async handleNewSalesOrder(db, req) {
+        const documentId = await new SequenceHelper({
             db,
             sequence: "ZSALES_DOCUMENT_ID",
             table: "zsalesorder_SalesOrderEntity",
             field: "documentId",
-        }).getNextNumber()
-            .then(documentId => {
-                req.data.documentId = documentId.toString();
+        }).getNextNumber();
 
-                if (req.data.attachments?.length > 0) {
-                    return this.getAccessToken()
-                        .then(accessToken =>
-                            this.submitDocumentForExtraction(req.data.attachments[0], accessToken, req)
-                        )
-                        .catch(error => {
-                            console.error('Error in Document Extraction process:', error.message);
-                            req.error(500, 'Error in Document Extraction process');
-                        });
-                }
-            });
+        req.data.documentId = documentId.toString();
+    }
+
+
+    async handleProcessDocument(salesorder) {
+        try {
+
+            const accessToken = await this.getAccessToken();
+            await this.submitDocumentForExtraction(salesorder.attachments[0], accessToken, { salesorder });
+
+            return {
+                success: true,
+                message: "Document processing initiated successfully"
+            };
+        } catch (error) {
+            console.error('Error in Document Extraction process:', error.message);
+            return {
+                success: false,
+                message: `Error in Document Extraction process: ${error.message}`
+            };
+        }
     }
 
     getAccessToken() {
@@ -69,7 +91,7 @@ class SalesCatalogService extends cds.ApplicationService {
         }).then(response => response.data.access_token);
     }
 
-    submitDocumentForExtraction(attachment, accessToken, req) {
+    async submitDocumentForExtraction(attachment, accessToken, req) {
         const form = new FormData();
         const fileBuffer = Buffer.from(attachment.content, 'base64');
         form.append('file', fileBuffer, { filename: attachment.filename, contentType: attachment.mimeType });
@@ -86,13 +108,49 @@ class SalesCatalogService extends cds.ApplicationService {
         };
         form.append('options', JSON.stringify(options));
 
-        return axios.post(DOX_API_URL, form, {
-            headers: { 'Authorization': `Bearer ${accessToken}`, ...form.getHeaders() }
-        })
-            .then(postResponse => {
-                const jobId = postResponse.data.id;
+        // return axios.post(DOX_API_URL, form, {
+        //     headers: { 'Authorization': `Bearer ${accessToken}`, ...form.getHeaders() }
+        // })
+        // return this.DocumentExtraction_Dest.post('document/jobs', form)
+        //  {
+        // headers: {
+        //     ...form.getHeaders()
+        // }
+        // }
+        // )
+
+        let response;
+        try {
+            response = await this.DocumentExtraction_Dest.send
+                ({
+                    method: 'POST', path: '/', data: form, headers:
+                        { 'Content-Type': 'multipart/form-data', 'Content-Length': form.getLengthSync() }
+                })
+            if (response.status >= 200 && response.status < 300) {
+                const jobId = response.data.id;
                 return this.pollForJobCompletion(jobId, 0, req);
-            });
+            } else {
+                console.log('Error:', response.status, response.statusText);
+            }
+
+        }
+        catch (error) {
+            debugger
+            throw new Error("MyAPI err: " + error.message);
+        }
+        debugger
+        // const response = await this.DocumentExtraction_Dest.send
+        //     ({
+        //         method: 'POST', path: '/document/jobs', data: form, headers:
+        //             { 'Content-Type': 'multipart/form-data', 'Accept': 'multipart/mixed' }
+        //     })
+
+
+
+        // // .then(postResponse => {
+        //     const jobId = postResponse.data.id;
+        //     return this.pollForJobCompletion(jobId, 0, req);
+        // });
     }
 
     pollForJobCompletion(jobId, retries = 0, req) {

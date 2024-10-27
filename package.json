@@ -95,10 +95,9 @@
       },
       "DocumentExtraction_Dest": {
         "kind": "rest",
-        "csrf": true,
-        "csrfInBatch": true,
         "credentials": {
-          "destination": "DocumentExtraction_Dest"
+          "destination": "DocumentExtraction_Dest",
+          "path": "/document/jobs"
         }
       },
       "API_SALES_ORDER_SRV": {
