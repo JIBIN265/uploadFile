@@ -207,131 +207,131 @@ class SalesCatalogService extends cds.ApplicationService {
             }, {});
         });
 
-        return Promise.all([
-            this.s4HanaBP.run(
-                SELECT.one.from('A_BusinessPartnerAddress')
-                    .where({
-                        // BusinessPartnerFullName: headerFields.senderName,
-                        StreetName: headerFields.senderStreet,
-                        HouseNumber: headerFields.senderHouseNumber,
-                        CityName: headerFields.senderCity,
-                        PostalCode: headerFields.senderPostalCode,
-                        Region: headerFields.senderState,
-                        // Country: headerFields.senderCountryCode
-                    })
-            ).catch(error => {
-                console.error(`Error fetching Sold-to Party: ${error.message}`);
-                return null;
-            }),
-            this.s4HanaBP.run(
-                SELECT.one.from('A_BusinessPartnerAddress')
-                    .where({
-                        // StreetName: headerFields.shipToStreet,
-                        HouseNumber: headerFields.shipToHouseNumber,
-                        CityName: headerFields.shipToCity,
-                        PostalCode: headerFields.shipToPostalCode,
-                        Region: headerFields.shipToState
-                    })
-            ).catch(error => {
-                console.error(`Error fetching Ship-to Party: ${error.message}`);
-                return null;
-            })
-        ]).then(([soldToResponse, shipToResponse]) => {
-            return {
-                SalesOrderType: 'OR',
-                SoldToParty: '1000294', //shipToResponse.BusinessPartner,//soldToResponse.BusinessPartner, //? shipToResponse.BusinessPartner : null),
-                TransactionCurrency: headerFields.currencyCode || '',
-                SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
-                RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
-                to_Item: {
-                    results: lineItems.map((item, index) => ({
-                        SalesOrderItem: String((index + 1) * 10),
-                        Material: item.customerMaterialNumber || '',
-                        SalesOrderItemText: item.description || '',
-                        RequestedQuantity: parseFloat(item.quantity) || 0
-                    }))
-                }
-            };
-        });
+        // return Promise.all([
+        //     this.s4HanaBP.run(
+        //         SELECT.one.from('A_BusinessPartnerAddress')
+        //             .where({
+        //                 // BusinessPartnerFullName: headerFields.senderName,
+        //                 StreetName: headerFields.senderStreet,
+        //                 HouseNumber: headerFields.senderHouseNumber,
+        //                 CityName: headerFields.senderCity,
+        //                 PostalCode: headerFields.senderPostalCode,
+        //                 Region: headerFields.senderState,
+        //                 // Country: headerFields.senderCountryCode
+        //             })
+        //     ).catch(error => {
+        //         console.error(`Error fetching Sold-to Party: ${error.message}`);
+        //         return null;
+        //     }),
+        //     this.s4HanaBP.run(
+        //         SELECT.one.from('A_BusinessPartnerAddress')
+        //             .where({
+        //                 // StreetName: headerFields.shipToStreet,
+        //                 HouseNumber: headerFields.shipToHouseNumber,
+        //                 CityName: headerFields.shipToCity,
+        //                 PostalCode: headerFields.shipToPostalCode,
+        //                 Region: headerFields.shipToState
+        //             })
+        //     ).catch(error => {
+        //         console.error(`Error fetching Ship-to Party: ${error.message}`);
+        //         return null;
+        //     })
+        // ]).then(([soldToResponse, shipToResponse]) => {
+        //     return {
+        //         SalesOrderType: 'OR',
+        //         SoldToParty: '1000294', //shipToResponse.BusinessPartner,//soldToResponse.BusinessPartner, //? shipToResponse.BusinessPartner : null),
+        //         TransactionCurrency: headerFields.currencyCode || '',
+        //         SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
+        //         RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
+        //         to_Item: {
+        //             results: lineItems.map((item, index) => ({
+        //                 SalesOrderItem: String((index + 1) * 10),
+        //                 Material: item.customerMaterialNumber || '',
+        //                 SalesOrderItemText: item.description || '',
+        //                 RequestedQuantity: parseFloat(item.quantity) || 0
+        //             }))
+        //         }
+        //     };
+        // });
     }
 
     createSalesOrderInS4HANA(payload, req) {
-        return this.s4HanaSales.run(
-            INSERT.into('A_SalesOrder').entries(payload)
-        )
-            .then(response => {
-                console.log('S/4HANA response:', response);
-                // Update request data with response values
-                req.data.SalesOrder = response.SalesOrder;
-                req.data.SalesOrderType = response.SalesOrderType;
-                req.data.TransactionCurrency = response.TransactionCurrency;
-                req.data.SalesOrderDate = response.SalesOrderDate;
-                req.data.RequestedDeliveryDate = response.RequestedDeliveryDate;
-                req.data.PricingDate = response.PricingDate;
-                req.data.ShippingCondition = response.ShippingCondition;
-                req.data.to_Item = payload.to_Item.results.map((item, index) => ({
-                    SalesOrderItem: String((index + 1) * 10),
-                    Material: item.Material || '',
-                    SalesOrderItemText: item.SalesOrderItemText || '',
-                    RequestedQuantity: item.RequestedQuantity || 0
-                }));
+        // return this.s4HanaSales.run(
+        //     INSERT.into('A_SalesOrder').entries(payload)
+        // )
+        //     .then(response => {
+        //         console.log('S/4HANA response:', response);
+        //         // Update request data with response values
+        //         req.data.SalesOrder = response.SalesOrder;
+        //         req.data.SalesOrderType = response.SalesOrderType;
+        //         req.data.TransactionCurrency = response.TransactionCurrency;
+        //         req.data.SalesOrderDate = response.SalesOrderDate;
+        //         req.data.RequestedDeliveryDate = response.RequestedDeliveryDate;
+        //         req.data.PricingDate = response.PricingDate;
+        //         req.data.ShippingCondition = response.ShippingCondition;
+        //         req.data.to_Item = payload.to_Item.results.map((item, index) => ({
+        //             SalesOrderItem: String((index + 1) * 10),
+        //             Material: item.Material || '',
+        //             SalesOrderItemText: item.SalesOrderItemText || '',
+        //             RequestedQuantity: item.RequestedQuantity || 0
+        //         }));
 
-                return response.SalesOrder;
-            })
-            .catch(error => {
-                console.error('Error posting to S/4HANA:', error);
-                throw new Error('Failed to create sales order in S/4HANA');
-            });
+        //         return response.SalesOrder;
+        //     })
+        //     .catch(error => {
+        //         console.error('Error posting to S/4HANA:', error);
+        //         throw new Error('Failed to create sales order in S/4HANA');
+        //     });
     }
 
     handleSaveSalesOrder(req) {
-        const payload = {
-            SalesOrderType: req.data.SalesOrderType,
-            SalesOrganization: req.data.SalesOrganization,
-            DistributionChannel: req.data.DistributionChannel,
-            OrganizationDivision: req.data.OrganizationDivision,
-            SoldToParty: req.data.SoldToParty,
-            PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
-            TransactionCurrency: req.data.TransactionCurrency,
-            SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
-            PricingDate: new Date(req.data.PricingDate).toISOString(),
-            RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
-            ShippingCondition: req.data.ShippingCondition,
-            CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
-            IncotermsClassification: req.data.IncotermsClassification,
-            IncotermsLocation1: req.data.IncotermsLocation1,
-            CustomerPaymentTerms: req.data.CustomerPaymentTerms,
-            to_Item: {
-                results: req.data.to_Item.map(item => ({
-                    SalesOrderItem: item.SalesOrderItem,
-                    Material: item.Material,
-                    SalesOrderItemText: item.SalesOrderItemText,
-                    RequestedQuantity: item.RequestedQuantity,
-                    RequestedQuantityUnit: item.RequestedQuantityUnit,
-                    ItemGrossWeight: item.ItemGrossWeight,
-                    ItemNetWeight: item.ItemNetWeight,
-                    ItemWeightUnit: item.ItemWeightUnit,
-                    NetAmount: item.NetAmount,
-                    MaterialGroup: item.MaterialGroup,
-                    ProductionPlant: item.ProductionPlant,
-                    StorageLocation: item.StorageLocation,
-                    DeliveryGroup: item.DeliveryGroup,
-                    ShippingPoint: item.ShippingPoint
-                }))
-            }
-        };
+        // const payload = {
+        //     SalesOrderType: req.data.SalesOrderType,
+        //     SalesOrganization: req.data.SalesOrganization,
+        //     DistributionChannel: req.data.DistributionChannel,
+        //     OrganizationDivision: req.data.OrganizationDivision,
+        //     SoldToParty: req.data.SoldToParty,
+        //     PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
+        //     TransactionCurrency: req.data.TransactionCurrency,
+        //     SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
+        //     PricingDate: new Date(req.data.PricingDate).toISOString(),
+        //     RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
+        //     ShippingCondition: req.data.ShippingCondition,
+        //     CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
+        //     IncotermsClassification: req.data.IncotermsClassification,
+        //     IncotermsLocation1: req.data.IncotermsLocation1,
+        //     CustomerPaymentTerms: req.data.CustomerPaymentTerms,
+        //     to_Item: {
+        //         results: req.data.to_Item.map(item => ({
+        //             SalesOrderItem: item.SalesOrderItem,
+        //             Material: item.Material,
+        //             SalesOrderItemText: item.SalesOrderItemText,
+        //             RequestedQuantity: item.RequestedQuantity,
+        //             RequestedQuantityUnit: item.RequestedQuantityUnit,
+        //             ItemGrossWeight: item.ItemGrossWeight,
+        //             ItemNetWeight: item.ItemNetWeight,
+        //             ItemWeightUnit: item.ItemWeightUnit,
+        //             NetAmount: item.NetAmount,
+        //             MaterialGroup: item.MaterialGroup,
+        //             ProductionPlant: item.ProductionPlant,
+        //             StorageLocation: item.StorageLocation,
+        //             DeliveryGroup: item.DeliveryGroup,
+        //             ShippingPoint: item.ShippingPoint
+        //         }))
+        //     }
+        // };
 
-        return this.s4HanaSales.run(
-            INSERT.into('A_SalesOrder').entries(payload)
-        )
-            .then(response => {
-                console.log('S/4HANA response:', response);
-                req.data.SalesOrder = response.SalesOrder;
-            })
-            .catch(error => {
-                console.error('Error posting to S/4HANA:', error);
-                req.error(500, 'Failed to create sales order in S/4HANA', error);
-            });
+        // return this.s4HanaSales.run(
+        //     INSERT.into('A_SalesOrder').entries(payload)
+        // )
+        //     .then(response => {
+        //         console.log('S/4HANA response:', response);
+        //         req.data.SalesOrder = response.SalesOrder;
+        //     })
+        //     .catch(error => {
+        //         console.error('Error posting to S/4HANA:', error);
+        //         req.error(500, 'Failed to create sales order in S/4HANA', error);
+        //     });
     }
 
     handleS3FileRetrieval(req) {

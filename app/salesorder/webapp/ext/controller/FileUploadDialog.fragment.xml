@@ -1,0 +1,66 @@
+<core:FragmentDefinition 
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:u="sap.ui.unified"
+    id="idFileUploadDialogFragmentDefinition"
+    class="sapUiTinyMarginTop">
+
+    <Dialog id="idAddViaUrlDialog" 
+        title="PDF Upload" type="Message" 
+        draggable="true"
+        resizable="true" 
+        contentWidth="auto"  
+        contentHeight="auto" 
+        class="sapUiSmallMargin">
+        <content> 
+            <!-- File Uploader Section -->
+            <l:VerticalLayout id="idGenVerticalLayout">
+                <HBox id="idFileGenHBox"  backgroundDesign="Solid" fitContainer="true"  >
+                    <VBox id="idUploadGenVBox" class="sapUiSmallMarginEnd" fitContainer="true"   >
+                    <u:FileUploader  style="Emphasized" 
+                        id="idFileUploader"  
+                        name="myFileUpload" 
+                        uploadUrl="salesorder/attachments"
+                        tooltip="Upload your file to the local server"
+                        fileType="pdf"   
+                        placeholder="Choose or drag a file for upload..."> <!-- Attach the change event -->
+                        
+                    </u:FileUploader>
+                        </VBox>
+                </HBox>
+            </l:VerticalLayout>
+            
+            <!-- List Section with Custom List Item for Inputs -->
+            <List id="idUrlList" headerText="Additional Details">
+            <items>
+                
+        
+                <CustomListItem id="idCustomListItem">
+                    <HBox id="idGenHBox" class="sapUiSmallMargin" alignItems="Center">
+                        <!-- Extract PDF Checkbox -->
+                        <VBox id="idGenVBox" class="sapUiSmallMarginEnd">
+                            <Label id="idExtractPDFLabel" text="Extract PDF" required="true"/>
+                            <CheckBox id="idExtractPdfCheckBox" selected="true"/>
+                        </VBox>
+                        <!-- Dropdown for Name -->
+                        <VBox id="idTypeGenVBox" class="sapUiSmallMarginEnd">
+                            <Label id="idTypeGenVBoxLabel" text="Type" required="true"/>
+                            <Select id="idGenVBoxSelect" autoAdjustWidth="true">
+                                <core:Item id="idTypeGenOneItem" key="Type1" text="Type 1"/>
+                                <core:Item id="idTypeGenTwoItem" key="Type2" text="Type 2"/>
+                                <core:Item id="idTypeGenThreeItem" key="Type3" text="Type 3"/>
+                            </Select>
+                        </VBox>
+                        <!-- Progress Indicator -->
+                        <VBox id="idProgressGenVBox" class="sapUiSmallMarginEnd" width="100%">
+                            <Label id="idProgressGenLabel" text="Progress"/>
+                            <ProgressIndicator id="idProgressIndicator" displayValue="0%"/>
+                        </VBox>
+                    </HBox>
+                </CustomListItem>
+                    </items>
+            </List>
+        </content>
+    </Dialog>
+</core:FragmentDefinition>
