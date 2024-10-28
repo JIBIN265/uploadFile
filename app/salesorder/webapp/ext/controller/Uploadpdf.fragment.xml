@@ -5,6 +5,7 @@
     xmlns:core="sap.ui.core"
     xmlns:u="sap.ui.unified"
     xmlns:upload="sap.m.upload"
+    xmlns:macros="sap.fe.macros"
 >
     <Dialog
         id="uploadDialogSet"
@@ -35,6 +36,22 @@
                     />
                 </upload:items>
             </upload:UploadSet>
+            	<Panel id="_IDGenPanel" headerText="Form Based on a Reference Facet" binding="{path:'/salesorder(\'1\')'}">
+            <macros:Form metaPath="/salesorder/@com.sap.vocabularies.UI.v1.FieldGroup#GeneratedGroup" id="myForm" title="Something Else">
+			<macros:FormElement
+				metaPath="ID"
+				id="formElementMacroID"
+				label="ID Property After Number"
+				placement="After"
+				anchor="DataField::PricingDate"
+			/>
+			<macros:FormElement metaPath="SalesOrderDate" id="customSlider" placement="Before" label="Slider Example">
+				<macros:fields>
+					<Slider id="_IDGenSlider" />
+				</macros:fields>
+			</macros:FormElement>
+		</macros:Form>
+        	</Panel>
         </content>
     </Dialog>
 </core:FragmentDefinition>

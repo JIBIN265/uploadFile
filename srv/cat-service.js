@@ -210,17 +210,61 @@ class SalesCatalogService extends cds.ApplicationService {
                     );
 
                     console.log('S/4HANA response:', s4Response);
-                    const { salesOrder, SalesOrderType, SalesOrganization } = s4Response;
 
-                    // const oSalesorder = await this.send({
-                    //     query: INSERT.into(salesorder).entries(newSalesorder),
-                    //     event: "NEW",
-                    // });
+                    const dbUpdatePayload = {
+                        s4SalesOrderId: s4Response.SalesOrder,
+                        salesOrderType: s4Response.SalesOrderType,
+                        soldToParty: s4Response.SoldToParty,
+                        transactionCurrency: s4Response.TransactionCurrency,
+                        salesOrderDate: s4Response.SalesOrderDate,
+                        requestedDeliveryDate: s4Response.RequestedDeliveryDate,
+                        lastChangedAt: new Date().toISOString()
+                    };
+
+                    // Update HANA DB
+                    // const updatedRecord = await UPDATE(salesorder)
+                    //     .set(dbUpdatePayload)
+                    //     .where({ ID: oSalesorder.ID });
+                    const existingDraft = await SELECT.from(salesorder)
+                        .where({
+                            ID: oSalesorder.ID,
+                            IsActiveEntity: false
+                        });
+
+                    if (existingDraft.length > 0) {
+                        // Update existing draft
+                        const updatedRecord = await this.send({
+                            query: UPDATE(salesorder)
+                                .set(dbUpdatePayload)
+                                .where({
+                                    ID: oSalesorder.ID,
+                                    IsActiveEntity: false
+                                }),
+                            event: "UPDATE"
+                        });
+                    } else {
+                        // Create new draft
+                        const newDraft = {
+                            ...dbUpdatePayload,
+                            ID: oSalesorder.ID,
+                            IsActiveEntity: false,
+                            DraftAdministrativeData_DraftUUID: cds.utils.uuid()
+                        };
+
+                        const createdDraft = await this.send({
+                            query: INSERT.into(salesorder).entries(newDraft),
+                            event: "NEW"
+                        });
+                    }
+
+                    if (updatedRecord === 0) {
+                        throw new Error("Update failed: No record found with the specified ID.");
+                    }
+
                     req.notify("Order has been successfully created");
-                    return oSalesorder;
                 }
 
-                throw new Error('Document extraction failed');
+                // throw new Error('Document extraction failed');
             } catch (error) {
                 console.error('Error in process:', error);
                 req.error(500, `Processing error: ${error.message}`);
