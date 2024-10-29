@@ -1,6 +1,7 @@
 const cds = require('@sap/cds');
 const SequenceHelper = require("./lib/SequenceHelper");
 const FormData = require('form-data');
+const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
 
 const MAX_RETRIES = 30;
 const RETRY_DELAY_MS = 3000;
@@ -35,6 +36,7 @@ class SalesCatalogService extends cds.ApplicationService {
         });
 
         this.before('SAVE', salesorder, async (req) => {
+            console.log("save entity");
             try {
                 const payload = {
                     SalesOrderType: req.data.SalesOrderType,
@@ -89,7 +91,8 @@ class SalesCatalogService extends cds.ApplicationService {
                 // Create new sales order
                 const newSalesorder = {
                     ...req.data.salesOrder,
-                    DraftAdministrativeData_DraftUUID: cds.utils.uuid()
+                    DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                    // to_Item:{}
                 };
 
                 const oSalesorder = await this.send({
@@ -212,56 +215,74 @@ class SalesCatalogService extends cds.ApplicationService {
                     console.log('S/4HANA response:', s4Response);
 
                     const dbUpdatePayload = {
-                        s4SalesOrderId: s4Response.SalesOrder,
-                        salesOrderType: s4Response.SalesOrderType,
-                        soldToParty: s4Response.SoldToParty,
-                        transactionCurrency: s4Response.TransactionCurrency,
-                        salesOrderDate: s4Response.SalesOrderDate,
-                        requestedDeliveryDate: s4Response.RequestedDeliveryDate,
-                        lastChangedAt: new Date().toISOString()
+                        SalesOrder: s4Response.SalesOrder,
+                        SalesOrderType: s4Response.SalesOrderType,
+                        SoldToParty: s4Response.SoldToParty,
+                        TransactionCurrency: s4Response.TransactionCurrency,
+                        SalesOrderDate: s4Response.SalesOrderDate,
+                        RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
+                        // IsActiveEntity: true,
+                        to_Item: lineItems.map((item, index) => ({
+                            // ID: cds.utils.uuid(),
+                            // UP_ID: oSalesorder.ID,
+                            DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                            SalesOrderItem: String((index + 1) * 10),
+                            HasActiveEntity: false,
+                            Material: item.customerMaterialNumber || '',
+                            SalesOrderItemText: item.description || '',
+                            RequestedQuantity: parseFloat(item.quantity) || 0
+                        }))
                     };
 
-                    // Update HANA DB
-                    // const updatedRecord = await UPDATE(salesorder)
-                    //     .set(dbUpdatePayload)
-                    //     .where({ ID: oSalesorder.ID });
-                    const existingDraft = await SELECT.from(salesorder)
-                        .where({
-                            ID: oSalesorder.ID,
-                            IsActiveEntity: false
-                        });
+                    // const updatedRecord = await this.send({
+                    //     query: UPDATE(salesorder)
+                    //         .set(dbUpdatePayload)
+                    //         .where({
+                    // DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID
+                    //         }),
+                    //     event: "UPDATE"
+                    // });
 
-                    if (existingDraft.length > 0) {
-                        // Update existing draft
-                        const updatedRecord = await this.send({
-                            query: UPDATE(salesorder)
-                                .set(dbUpdatePayload)
-                                .where({
-                                    ID: oSalesorder.ID,
-                                    IsActiveEntity: false
-                                }),
-                            event: "UPDATE"
-                        });
-                    } else {
-                        // Create new draft
-                        const newDraft = {
-                            ...dbUpdatePayload,
-                            ID: oSalesorder.ID,
-                            IsActiveEntity: false,
-                            DraftAdministrativeData_DraftUUID: cds.utils.uuid()
-                        };
+                    const updatedRecord = await db.run(
+                        UPDATE(salesorder)
+                            .set(dbUpdatePayload)
+                            // .except(keyFields)
+                            .where({ ID: oSalesorder.ID })
+                    );
 
-                        const createdDraft = await this.send({
-                            query: INSERT.into(salesorder).entries(newDraft),
-                            event: "NEW"
-                        });
-                    }
+                    const entitySet = await db.run(
+                        SELECT.one.from(salesorder.drafts)
+                            .columns(cpx => {
+                                cpx`*`,                   // Select all columns from Capex
+                                    cpx.to_Item(cfy => { cfy`*` }),
+                                    cpx.attachments(afy => { afy`*` })
+                            })
+                            .where({ ID: oSalesorder.ID })
+                    );
+                    // const bSalesorder = await this.send({ event: 'draftActivate', entity: entitySet, data: {}, 
+                    //     params: [{ ID: oSalesorder.ID, IsActiveEntity: false }] })
+                    // const bSalesorder = await this.send({
+                    //     event: 'draftActivate',
+                    //     entity: salesorder,
+                    //     params: [{
+                    //         name: 'ID',
+                    //         value: oSalesorder.ID
+                    //     }, {
+                    //         name: 'IsActiveEntity',
+                    //         value: false
+                    //     }]
+                    // });
+            
+                    // Optional: Delete the draft after activation
+                    await db.run(
+                        DELETE.from(salesorder.drafts)
+                            .where({ ID: oSalesorder.ID })
+                    );
+            
 
-                    if (updatedRecord === 0) {
-                        throw new Error("Update failed: No record found with the specified ID.");
-                    }
-
+                    // const isActive = await this.draftActivate("salesorder", { in: entitySet });
                     req.notify("Order has been successfully created");
+                    return entitySet
                 }
 
                 // throw new Error('Document extraction failed');

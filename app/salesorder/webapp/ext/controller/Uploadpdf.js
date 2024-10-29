@@ -56,10 +56,11 @@ sap.ui.define([
                     skipParameterDialog: true
                 };
 
-                oEditFlow.invokeAction(sActionName, mParameters).then(function (response) {
+                var oContext = await oEditFlow.invokeAction(sActionName, mParameters).then(function (response) {
                     debugger
-                    MessageToast.show('successfully created FE');
+                    // MessageToast.show('successfully created FE');
                 });
+                debugger
 
                 // Await the create operation and refresh binding
                 // var oContext = await oListBinding.create(oData);

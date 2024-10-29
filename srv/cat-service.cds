@@ -30,6 +30,7 @@ service SalesCatalogService {
         secretAccessKey : String;
     };
 
-    @Common.SideEffects: {TargetEntities: ['/SalesCatalogService.EntityContainer/salesorder']}
+    @Common.SideEffects #salesorder: {TargetEntities: ['/SalesCatalogService.EntityContainer/salesorder']}
+    @Common.SideEffects #salesorderItem: {TargetEntities: ['/SalesCatalogService.EntityContainer/SalesOrderItem']}
     action processDocument(salesOrder : salesorder)                                     returns salesorder;
 }

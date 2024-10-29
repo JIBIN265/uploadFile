@@ -60,7 +60,13 @@ sap.ui.define([
                     };
 
                     // Invoke action to process the document
-                    await oEditFlow.invokeAction(sActionName, mParameters);
+                    debugger 
+                  const oContext =  await oEditFlow.invokeAction(sActionName, mParameters);
+                //   const oBind = oEditFlow.getView().getModel().bindContext( `${oContext.getPath()}/SalesCatalogService.draftActivate(...)`, oContext);
+                //   const draftController = new sap.ui.generic.app.transaction.DraftController(oEditFlow.getView().getModel());
+                //   await draftController.activateDraftEntity(oContext, true);
+                //   binding.refresh();
+                  debugger;
 
                     MessageToast.show("File processed successfully!");
                 } catch (oError) {
