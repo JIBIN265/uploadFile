@@ -120,99 +120,135 @@ class SalesCatalogService extends cds.ApplicationService {
                 };
                 form.append('options', JSON.stringify(options));
 
-                // Submit document for extraction
-                const extractionResponse = await this.DocumentExtraction_Dest.send({
-                    method: 'POST',
-                    path: '/',
-                    data: form,
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        'Content-Length': form.getLengthSync()
-                    }
-                });
+                let status = '';
+                let extractionResults;
 
-                if (extractionResponse.status === 'PENDING') {
-                    // Poll for results
-                    let retries = 0;
-                    let jobDone = false;
-                    let extractionResults;
+                // Submit document for extraction with error handling
+                try {
+                    const extractionResponse = await this.DocumentExtraction_Dest.send({
+                        method: 'POST',
+                        path: '/',
+                        data: form,
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            'Content-Length': form.getLengthSync()
+                        }
+                    });
 
-                    while (!jobDone && retries < MAX_RETRIES) {
-                        const jobStatus = await this.DocumentExtraction_Dest.get(`/${extractionResponse.id}`);
-                        console.log(`Attempt ${retries + 1}: Current job status is '${jobStatus.status}'`);
+                    if (extractionResponse.status === 'PENDING') {
+                        // Poll for results
+                        let retries = 0;
+                        let jobDone = false;
 
-                        if (jobStatus.status === "DONE") {
-                            jobDone = true;
-                            extractionResults = jobStatus.extraction;
-                        } else {
-                            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-                            retries++;
+                        while (!jobDone && retries < MAX_RETRIES) {
+                            const jobStatus = await this.DocumentExtraction_Dest.get(`/${extractionResponse.id}`);
+                            console.log(`Attempt ${retries + 1}: Current job status is '${jobStatus.status}'`);
+
+                            if (jobStatus.status === "DONE") {
+                                jobDone = true;
+                                extractionResults = jobStatus.extraction;
+                            } else {
+                                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                                retries++;
+                            }
+                        }
+
+                        if (!jobDone) {
+                            status = `Extraction failed after ${MAX_RETRIES} attempts`;
+                            await updateDraftOnly(oSalesorder.ID, status);
+                            return;
                         }
                     }
+                } catch (error) {
+                    status = `Document extraction failed: ${error.message}`;
+                    await updateDraftOnly(oSalesorder.ID, status);
+                    return;
+                }
 
-                    if (!jobDone) {
-                        throw new Error(`Job did not reach 'DONE' status after ${MAX_RETRIES} attempts`);
-                    }
+                // Map extraction results
+                const headerFields = extractionResults.headerFields.reduce((acc, field) => {
+                    acc[field.name] = field.value;
+                    return acc;
+                }, {});
 
-                    // Map extraction results
-                    const headerFields = extractionResults.headerFields.reduce((acc, field) => {
+                const lineItems = extractionResults.lineItems.map(item => {
+                    return item.reduce((acc, field) => {
                         acc[field.name] = field.value;
                         return acc;
                     }, {});
+                });
 
-                    const lineItems = extractionResults.lineItems.map(item => {
-                        return item.reduce((acc, field) => {
-                            acc[field.name] = field.value;
-                            return acc;
-                        }, {});
-                    });
+                const removeSpecialCharacters = (str) => {
+                    if (!str) return str;
+                    return str.replace(/[^a-zA-Z0-9\s]/g, '');
+                };
 
-                    // Get business partner data
-                    const [soldToResponse, shipToResponse] = await Promise.all([
-                        this.s4HanaBP.run(
-                            SELECT.one.from('A_BusinessPartnerAddress')
-                                .where({
-                                    StreetName: headerFields.senderStreet,
-                                    HouseNumber: headerFields.senderHouseNumber,
-                                    CityName: headerFields.senderCity,
-                                    PostalCode: headerFields.senderPostalCode,
-                                    Region: headerFields.senderState,
-                                })
-                        ).catch(() => null),
-                        this.s4HanaBP.run(
-                            SELECT.one.from('A_BusinessPartnerAddress')
-                                .where({
-                                    HouseNumber: headerFields.shipToHouseNumber,
-                                    CityName: headerFields.shipToCity,
-                                    PostalCode: headerFields.shipToPostalCode,
-                                    Region: headerFields.shipToState
-                                })
-                        ).catch(() => null)
-                    ]);
+                // Separate BP lookups with error handling
+                let soldToResponse = null;
+                let shipToResponse = null;
 
-                    // Create S4HANA sales order
-                    const salesOrderPayload = {
-                        SalesOrderType: 'OR',
-                        SoldToParty: '1000294',
-                        TransactionCurrency: headerFields.currencyCode || '',
-                        SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
-                        RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
-                        to_Item: {
-                            results: lineItems.map((item, index) => ({
-                                SalesOrderItem: String((index + 1) * 10),
-                                Material: item.customerMaterialNumber || '',
-                                SalesOrderItemText: item.description || '',
-                                RequestedQuantity: parseFloat(item.quantity) || 0
-                            }))
-                        }
-                    };
+                try {
+                    soldToResponse = await this.s4HanaBP.run(
+                        SELECT.one.from('A_BusinessPartnerAddress')
+                            .where({
+                                StreetName: removeSpecialCharacters(headerFields.senderStreet),
+                                HouseNumber: removeSpecialCharacters(headerFields.senderHouseNumber),
+                                CityName: removeSpecialCharacters(headerFields.senderCity),
+                                PostalCode: removeSpecialCharacters(headerFields.senderPostalCode),
+                                Region: removeSpecialCharacters(headerFields.senderState)
+                            })
+                    );
+                } catch (error) {
+                    status = `SoldTo BP lookup failed: ${error.message}`;
+                }
 
+                try {
+                    shipToResponse = await this.s4HanaBP.run(
+                        SELECT.one.from('A_BusinessPartnerAddress')
+                            .where({
+                                // StreetName: removeSpecialCharacters(headerFields.shipToStreet),
+                                HouseNumber: headerFields.shipToHouseNumber,
+                                CityName: headerFields.shipToCity,
+                                PostalCode: headerFields.shipToPostalCode,
+                                Region: headerFields.shipToState,
+                                Country: headerFields.shipToCountryCode
+                            })
+                    );
+                } catch (error) {
+                    status = `ShipTo BP lookup failed: ${error.message}`;
+                }
+
+
+                // Check if both BP lookups failed
+                if (!soldToResponse && !shipToResponse) {
+                    status = 'Both Business Partner lookups failed';
+                    await updateDraftOnly(oSalesorder.ID, status);
+                    return;
+                }
+
+                // Create S4HANA sales order
+                const salesOrderPayload = {
+                    SalesOrderType: 'OR',
+                    SoldToParty: '1000294',//soldToResponse?.BusinessPartner || shipToResponse?.BusinessPartner,
+                    TransactionCurrency: headerFields.currencyCode || '',
+                    SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
+                    RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
+                    to_Item: {
+                        results: lineItems.map((item, index) => ({
+                            SalesOrderItem: String((index + 1) * 10),
+                            Material: item.customerMaterialNumber || '',
+                            SalesOrderItemText: item.description || '',
+                            RequestedQuantity: parseFloat(item.quantity) || 0
+                        }))
+                    }
+                };
+
+                try {
                     const s4Response = await this.s4HanaSales.run(
                         INSERT.into('A_SalesOrder').entries(salesOrderPayload)
                     );
 
-                    console.log('S/4HANA response:', s4Response);
-
+                    // Update draft with success data
                     const dbUpdatePayload = {
                         SalesOrder: s4Response.SalesOrder,
                         SalesOrderType: s4Response.SalesOrderType,
@@ -220,60 +256,100 @@ class SalesCatalogService extends cds.ApplicationService {
                         TransactionCurrency: s4Response.TransactionCurrency,
                         SalesOrderDate: s4Response.SalesOrderDate,
                         RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
-                        Status : 'Sales Order Created',
+                        Status: 'Sales Order Created',
                         DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                         IsActiveEntity: true,
                         to_Item: lineItems.map((item, index) => ({
                             DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                             IsActiveEntity: true,
                             SalesOrderItem: String((index + 1) * 10),
-                            Material: item.customerMaterialNumber || '',
-                            SalesOrderItemText: item.description || '',
-                            RequestedQuantity: parseFloat(item.quantity) || 0
+                            Material: item.customerMaterialNumber,
+                            SalesOrderItemText: item.description,
+                            RequestedQuantity: parseFloat(item.quantity)
                         }))
                     };
 
-                    const updatedRecord = await db.run(
+                    // Update draft
+                    await db.run(
                         UPDATE(salesorder.drafts)
                             .set(dbUpdatePayload)
                             .where({ ID: oSalesorder.ID })
                     );
 
+                    // Get updated draft
                     const entitySet = await db.run(
                         SELECT.one.from(salesorder.drafts)
                             .columns(cpx => {
-                                cpx`*`,                   // Select all columns from Capex
+                                cpx`*`,
                                     cpx.to_Item(cfy => { cfy`*` }),
                                     cpx.attachments(afy => { afy`*` })
                             })
                             .where({ ID: oSalesorder.ID })
                     );
 
-                    const ins = await INSERT(entitySet).into(salesorder);
-
-                    const sel = await db.run(
-                        SELECT.one.from(salesorder)
-                            .columns(cpx => {
-                                cpx`*`,                   // Select all columns from Capex
-                                    cpx.to_Item(cfy => { cfy`*` }),
-                                    cpx.attachments(afy => { afy`*` })
-                            })
-                            .where({ ID: oSalesorder.ID })
-                    );
-
-                    const del = await DELETE(salesorder.drafts).where({
-                        DraftAdministrativeData_DraftUUID:
-                            oSalesorder.DraftAdministrativeData_DraftUUID,
+                    // Insert into main table and delete draft only on success
+                    await INSERT(entitySet).into(salesorder);
+                    await DELETE(salesorder.drafts).where({
+                        DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                     });
 
                     req.notify("Order has been successfully created");
-                    return entitySet
+                    return entitySet;
+
+                } catch (error) {
+                    status = `S4HANA Sales Order creation failed: ${error.message}`;
+                    await updateDraftOnly(oSalesorder.ID, status);
+                    return;
                 }
+
             } catch (error) {
                 console.error('Error in process:', error);
                 req.error(500, `Processing error: ${error.message}`);
             }
         });
+
+        this.on('postSalesWorkflow', async (req) => {
+            const salesOrderPayload = {
+                SalesOrderType: 'OR',
+                SoldToParty: '1000294',//soldToResponse?.BusinessPartner || shipToResponse?.BusinessPartner,
+                TransactionCurrency: req.data.currencyCode || '',
+                SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
+                RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
+                to_Item: {
+                    results: req.data.to_Item((item, index) => ({
+                        SalesOrderItem: String((index + 1) * 10),
+                        Material: item.customerMaterialNumber || '',
+                        SalesOrderItemText: item.description || '',
+                        RequestedQuantity: parseFloat(item.quantity) || 0
+                    }))
+                }
+            };
+
+            try {
+                const s4Response = await this.s4HanaSales.run(
+                    INSERT.into('A_SalesOrder').entries(salesOrderPayload)
+                );
+                const result = {};
+                result.message = 'Sales Order Successfully Created';
+                result.response = s4Response;
+                return req.reply(result);
+
+            } catch (error) {
+                const result = {};
+                result.message = `S4HANA Sales Order creation failed: ${error.message}`;
+                return req.reply(result);
+            }
+        });
+
+        // Helper function to update draft status without creating final record
+        async function updateDraftOnly(ID, status) {
+            await db.run(
+                UPDATE(salesorder.drafts)
+                    .set({ Status: status })
+                    .where({ ID: ID })
+            );
+        }
+
 
         await super.init();
     }

@@ -60,15 +60,8 @@ sap.ui.define([
                     };
 
                     // Invoke action to process the document
-                    debugger 
-                  const oContext =  await oEditFlow.invokeAction(sActionName, mParameters);
-                //   const oBind = oEditFlow.getView().getModel().bindContext( `${oContext.getPath()}/SalesCatalogService.draftActivate(...)`, oContext);
-                //   const draftController = new sap.ui.generic.app.transaction.DraftController(oEditFlow.getView().getModel());
-                //   await draftController.activateDraftEntity(oContext, true);
-                //   binding.refresh();
-                  debugger;
-
-                    MessageToast.show("File processed successfully!");
+                    debugger
+                    const oContext = await oEditFlow.invokeAction(sActionName, mParameters);
                 } catch (oError) {
                     MessageToast.show("Error uploading file: " + oError.message);
                 } finally {

@@ -158,20 +158,10 @@
                                 "header": {
                                     "actions": {
                                         "UploadPdf": {
-                                            "press": "salesorder.ext.controller.Uploadpdf.UploadPdf",
-                                            "visible": true,
-                                            "enabled": true,
-                                            "text": "Upload PDF"
-                                        },
-                                        "FileUploadDialog": {
                                             "press": "salesorder.ext.controller.FileUploadDialog.FileUploadDialog",
                                             "visible": true,
                                             "enabled": true,
-                                            "text": "Upload PDF New",
-                                            "position": {
-                                                "placement": "Before",
-                                                "anchor": "UploadPdf"
-                                            }
+                                            "text": "Upload PDF"
                                         }
                                     }
                                 }
@@ -196,18 +186,6 @@
                                         "enableFullScreen": true,
                                         "selectAll": true,
                                         "type": "GridTable"
-                                    }
-                                },
-                                "attachments/@com.sap.vocabularies.UI.v1.LineItem": {
-                                    "actions": {
-                                        "viewpdf": {
-                                            "press": "salesorder.ext.controller.Viewpdf.viewpdf",
-                                            "visible": true,
-                                            "enableOnSelect": "single",
-                                            "enabled": true,
-                                            "requiresSelection": true,
-                                            "text": "View PDF"
-                                        }
                                     }
                                 }
                             },
