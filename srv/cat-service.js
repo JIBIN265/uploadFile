@@ -88,11 +88,10 @@ class SalesCatalogService extends cds.ApplicationService {
 
         this.on('processDocument', async (req) => {
             try {
-                // Create new sales order
+                // Create new drafts sales order
                 const newSalesorder = {
                     ...req.data.salesOrder,
                     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
-                    // to_Item:{}
                 };
 
                 const oSalesorder = await this.send({
@@ -221,32 +220,22 @@ class SalesCatalogService extends cds.ApplicationService {
                         TransactionCurrency: s4Response.TransactionCurrency,
                         SalesOrderDate: s4Response.SalesOrderDate,
                         RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
-                        // IsActiveEntity: true,
+                        Status : 'Sales Order Created',
+                        DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
+                        IsActiveEntity: true,
                         to_Item: lineItems.map((item, index) => ({
-                            // ID: cds.utils.uuid(),
-                            // UP_ID: oSalesorder.ID,
-                            DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                            DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
+                            IsActiveEntity: true,
                             SalesOrderItem: String((index + 1) * 10),
-                            HasActiveEntity: false,
                             Material: item.customerMaterialNumber || '',
                             SalesOrderItemText: item.description || '',
                             RequestedQuantity: parseFloat(item.quantity) || 0
                         }))
                     };
 
-                    // const updatedRecord = await this.send({
-                    //     query: UPDATE(salesorder)
-                    //         .set(dbUpdatePayload)
-                    //         .where({
-                    // DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID
-                    //         }),
-                    //     event: "UPDATE"
-                    // });
-
                     const updatedRecord = await db.run(
-                        UPDATE(salesorder)
+                        UPDATE(salesorder.drafts)
                             .set(dbUpdatePayload)
-                            // .except(keyFields)
                             .where({ ID: oSalesorder.ID })
                     );
 
@@ -259,33 +248,27 @@ class SalesCatalogService extends cds.ApplicationService {
                             })
                             .where({ ID: oSalesorder.ID })
                     );
-                    // const bSalesorder = await this.send({ event: 'draftActivate', entity: entitySet, data: {}, 
-                    //     params: [{ ID: oSalesorder.ID, IsActiveEntity: false }] })
-                    // const bSalesorder = await this.send({
-                    //     event: 'draftActivate',
-                    //     entity: salesorder,
-                    //     params: [{
-                    //         name: 'ID',
-                    //         value: oSalesorder.ID
-                    //     }, {
-                    //         name: 'IsActiveEntity',
-                    //         value: false
-                    //     }]
-                    // });
-            
-                    // Optional: Delete the draft after activation
-                    await db.run(
-                        DELETE.from(salesorder.drafts)
+
+                    const ins = await INSERT(entitySet).into(salesorder);
+
+                    const sel = await db.run(
+                        SELECT.one.from(salesorder)
+                            .columns(cpx => {
+                                cpx`*`,                   // Select all columns from Capex
+                                    cpx.to_Item(cfy => { cfy`*` }),
+                                    cpx.attachments(afy => { afy`*` })
+                            })
                             .where({ ID: oSalesorder.ID })
                     );
-            
 
-                    // const isActive = await this.draftActivate("salesorder", { in: entitySet });
+                    const del = await DELETE(salesorder.drafts).where({
+                        DraftAdministrativeData_DraftUUID:
+                            oSalesorder.DraftAdministrativeData_DraftUUID,
+                    });
+
                     req.notify("Order has been successfully created");
                     return entitySet
                 }
-
-                // throw new Error('Document extraction failed');
             } catch (error) {
                 console.error('Error in process:', error);
                 req.error(500, `Processing error: ${error.message}`);

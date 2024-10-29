@@ -230,8 +230,9 @@
                     "controlAggregation": "endColumnPages",
                     "options": {
                         "settings": {
+                            "entitySet": "attachments",
                             "viewName": "salesorder.ext.view.ViewPdfPage",
-                            "contextPath": "/RootEntity/items"
+                            "contextPath": "/salesorder/attachments"
                         }
                     },
                     "contextPattern": "/salesorder({key})/attachments({attachmentsKey})"
