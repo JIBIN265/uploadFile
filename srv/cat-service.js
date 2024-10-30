@@ -296,12 +296,11 @@ class SalesCatalogService extends cds.ApplicationService {
                     );
 
                     const lineItemsPayload = lineItems.map((item, index) => ({
-                        SalesOrder: s4Response.SalesOrder, // Link to parent sales order
+                        SalesOrder: s4Response.SalesOrder,
                         SalesOrderItem: String((index + 1) * 10),
                         Material: item.customerMaterialNumber,
                         SalesOrderItemText: item.description,
                         RequestedQuantity: parseFloat(item.quantity),
-                        IsActiveEntity: true,
                         up__ID: oSalesorder.ID,
                         DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
                     }));
@@ -402,12 +401,11 @@ class SalesCatalogService extends cds.ApplicationService {
                 );
 
                 const lineItemsPayload = lineItems.map((item, index) => ({
-                    SalesOrder: s4Response.SalesOrder, // Link to parent sales order
+                    SalesOrder: s4Response.SalesOrder, 
                     SalesOrderItem: String((index + 1) * 10),
                     Material: item.customerMaterialNumber,
                     SalesOrderItemText: item.description,
                     RequestedQuantity: parseFloat(item.quantity),
-                    IsActiveEntity: true,
                     up__ID: oSalesorder.ID,
                     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
                 }));
