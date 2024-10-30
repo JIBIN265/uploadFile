@@ -1,0 +1,57 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    id="uploadPdfFragment"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:u="sap.ui.unified"
+    xmlns:upload="sap.m.upload"
+    xmlns:macros="sap.fe.macros"
+>
+    <Dialog
+        id="uploadDialogSet"
+        title="PDF Upload"
+        closeOnNavigation="true"
+        draggable="true"
+        resizable="true"
+    >
+        <content>
+            <upload:UploadSet 
+                mode="SingleSelect"
+                uploadEnabled="true"
+                instantUpload="false"
+                id="uploadSet"
+                items="{path: '', templateShareable: false}"
+                maxFileNameLength="128"
+                multiple="false"
+                fileTypes="pdf"
+                terminationEnabled="true"
+            >
+                <upload:items>
+                    <upload:UploadSetItem 
+                        id="_IDGenUploadSetItem1"
+                        visibleRemove="true"
+                        visibleEdit="false"
+                        selected="true"
+                        fileName="{name}"
+                    />
+                </upload:items>
+            </upload:UploadSet>
+            	<Panel id="_IDGenPanel" headerText="Form Based on a Reference Facet" binding="{path:'/salesorder(\'1\')'}">
+            <macros:Form metaPath="/salesorder/@com.sap.vocabularies.UI.v1.FieldGroup#GeneratedGroup" id="myForm" title="Something Else">
+			<macros:FormElement
+				metaPath="ID"
+				id="formElementMacroID"
+				label="ID Property After Number"
+				placement="After"
+				anchor="DataField::PricingDate"
+			/>
+			<macros:FormElement metaPath="SalesOrderDate" id="customSlider" placement="Before" label="Slider Example">
+				<macros:fields>
+					<Slider id="_IDGenSlider" />
+				</macros:fields>
+			</macros:FormElement>
+		</macros:Form>
+        	</Panel>
+        </content>
+    </Dialog>
+</core:FragmentDefinition>

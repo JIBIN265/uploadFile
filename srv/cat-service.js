@@ -36,53 +36,54 @@ class SalesCatalogService extends cds.ApplicationService {
         });
 
         this.before('SAVE', salesorder, async (req) => {
-            console.log("save entity");
-            try {
-                const payload = {
-                    SalesOrderType: req.data.SalesOrderType,
-                    SalesOrganization: req.data.SalesOrganization,
-                    DistributionChannel: req.data.DistributionChannel,
-                    OrganizationDivision: req.data.OrganizationDivision,
-                    SoldToParty: req.data.SoldToParty,
-                    PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
-                    TransactionCurrency: req.data.TransactionCurrency,
-                    SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
-                    PricingDate: new Date(req.data.PricingDate).toISOString(),
-                    RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
-                    ShippingCondition: req.data.ShippingCondition,
-                    CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
-                    IncotermsClassification: req.data.IncotermsClassification,
-                    IncotermsLocation1: req.data.IncotermsLocation1,
-                    CustomerPaymentTerms: req.data.CustomerPaymentTerms,
-                    to_Item: {
-                        results: req.data.to_Item.map(item => ({
-                            SalesOrderItem: item.SalesOrderItem,
-                            Material: item.Material,
-                            SalesOrderItemText: item.SalesOrderItemText,
-                            RequestedQuantity: item.RequestedQuantity,
-                            RequestedQuantityUnit: item.RequestedQuantityUnit,
-                            ItemGrossWeight: item.ItemGrossWeight,
-                            ItemNetWeight: item.ItemNetWeight,
-                            ItemWeightUnit: item.ItemWeightUnit,
-                            NetAmount: item.NetAmount,
-                            MaterialGroup: item.MaterialGroup,
-                            ProductionPlant: item.ProductionPlant,
-                            StorageLocation: item.StorageLocation,
-                            DeliveryGroup: item.DeliveryGroup,
-                            ShippingPoint: item.ShippingPoint
-                        }))
-                    }
-                };
+            if (!req.data.SalesOrder) {
+                try {
+                    const payload = {
+                        SalesOrderType: req.data.SalesOrderType,
+                        SalesOrganization: req.data.SalesOrganization,
+                        DistributionChannel: req.data.DistributionChannel,
+                        OrganizationDivision: req.data.OrganizationDivision,
+                        SoldToParty: req.data.SoldToParty,
+                        PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
+                        TransactionCurrency: req.data.TransactionCurrency,
+                        SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
+                        PricingDate: new Date(req.data.PricingDate).toISOString(),
+                        RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
+                        ShippingCondition: req.data.ShippingCondition,
+                        CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
+                        IncotermsClassification: req.data.IncotermsClassification,
+                        IncotermsLocation1: req.data.IncotermsLocation1,
+                        CustomerPaymentTerms: req.data.CustomerPaymentTerms,
+                        to_Item: {
+                            results: req.data.to_Item.map(item => ({
+                                SalesOrderItem: item.SalesOrderItem,
+                                Material: item.Material,
+                                SalesOrderItemText: item.SalesOrderItemText,
+                                RequestedQuantity: item.RequestedQuantity,
+                                RequestedQuantityUnit: item.RequestedQuantityUnit,
+                                ItemGrossWeight: item.ItemGrossWeight,
+                                ItemNetWeight: item.ItemNetWeight,
+                                ItemWeightUnit: item.ItemWeightUnit,
+                                NetAmount: item.NetAmount,
+                                MaterialGroup: item.MaterialGroup,
+                                ProductionPlant: item.ProductionPlant,
+                                StorageLocation: item.StorageLocation,
+                                DeliveryGroup: item.DeliveryGroup,
+                                ShippingPoint: item.ShippingPoint
+                            }))
+                        }
+                    };
 
-                const response = await this.s4HanaSales.run(
-                    INSERT.into('A_SalesOrder').entries(payload)
-                );
+                    const response = await this.s4HanaSales.run(
+                        INSERT.into('A_SalesOrder').entries(payload)
+                    );
 
-                console.log('S/4HANA response:', response);
-                req.data.SalesOrder = response.SalesOrder;
-            } catch (error) {
-                console.error('Error posting to S/4HANA:', error);
-                req.error(500, 'Failed to create sales order in S/4HANA', error);
+                    console.log('S/4HANA response:', response);
+                    req.data.SalesOrder = response.SalesOrder;
+                } catch (error) {
+                    console.error('Error posting to S/4HANA:', error);
+                    req.error(500, 'Failed to create sales order in S/4HANA', error);
+                }
             }
         });
 
@@ -309,14 +310,30 @@ class SalesCatalogService extends cds.ApplicationService {
         });
 
         this.on('postSalesWorkflow', async (req) => {
+
+            const newSalesorder = {
+                TransactionCurrency: req.data.currencyCode,
+                to_Item: req.data.to_Item.map(item => ({
+                    Material: item.customerMaterialNumber || '',
+                    SalesOrderItemText: item.description || '',
+                    RequestedQuantity: parseFloat(item.quantity) || 0
+                })),
+                DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+            };
+
+            const oSalesorder = await this.send({
+                query: INSERT.into(salesorder).entries(newSalesorder),
+                event: "NEW",
+            });
+            // Construct the sales order payload
             const salesOrderPayload = {
                 SalesOrderType: 'OR',
-                SoldToParty: '1000294',//soldToResponse?.BusinessPartner || shipToResponse?.BusinessPartner,
+                SoldToParty: '1000294', // Use the relevant party data
                 TransactionCurrency: req.data.currencyCode || '',
-                SalesOrderDate: new Date(headerFields.documentDate || Date.now()).toISOString(),
-                RequestedDeliveryDate: new Date(headerFields.requestedDeliveryDate || Date.now()).toISOString(),
+                SalesOrderDate: new Date(req.data.documentDate || Date.now()).toISOString(),
+                RequestedDeliveryDate: new Date(req.data.requestedDeliveryDate || Date.now()).toISOString(),
                 to_Item: {
-                    results: req.data.to_Item((item, index) => ({
+                    results: req.data.to_Item.map((item, index) => ({
                         SalesOrderItem: String((index + 1) * 10),
                         Material: item.customerMaterialNumber || '',
                         SalesOrderItemText: item.description || '',
@@ -329,15 +346,62 @@ class SalesCatalogService extends cds.ApplicationService {
                 const s4Response = await this.s4HanaSales.run(
                     INSERT.into('A_SalesOrder').entries(salesOrderPayload)
                 );
-                const result = {};
-                result.message = 'Sales Order Successfully Created';
-                result.response = s4Response;
-                return req.reply(result);
+
+                const dbUpdatePayload = {
+                    SalesOrder: s4Response.SalesOrder,
+                    SalesOrderType: s4Response.SalesOrderType,
+                    SoldToParty: s4Response.SoldToParty,
+                    TransactionCurrency: s4Response.TransactionCurrency,
+                    SalesOrderDate: s4Response.SalesOrderDate,
+                    RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
+                    Status: 'Sales Order Created',
+                    DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
+                    IsActiveEntity: true,
+                    to_Item: req.data.to_Item.map((item, index) => ({
+                        DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
+                        IsActiveEntity: true,
+                        SalesOrderItem: String((index + 1) * 10),
+                        Material: item.customerMaterialNumber,
+                        SalesOrderItemText: item.description,
+                        RequestedQuantity: parseFloat(item.quantity)
+                    }))
+                };
+
+                // Update draft
+                await db.run(
+                    UPDATE(salesorder.drafts)
+                        .set(dbUpdatePayload)
+                        .where({ ID: oSalesorder.ID })
+                );
+
+                // Get updated draft
+                const entitySet = await db.run(
+                    SELECT.one.from(salesorder.drafts)
+                        .columns(cpx => {
+                            cpx`*`,
+                                cpx.to_Item(cfy => { cfy`*` }),
+                                cpx.attachments(afy => { afy`*` })
+                        })
+                        .where({ ID: oSalesorder.ID })
+                );
+
+                // Insert into main table and delete draft only on success
+                await INSERT(entitySet).into(salesorder);
+                await DELETE(salesorder.drafts).where({
+                    DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
+                });
+                return {
+                    message: 'Sales Order Successfully Created',
+                    indicator: 'Y',
+                    response: s4Response
+                };
 
             } catch (error) {
-                const result = {};
-                result.message = `S4HANA Sales Order creation failed: ${error.message}`;
-                return req.reply(result);
+                await updateDraftOnly(oSalesorder.ID, `S4HANA Sales Order creation failed: ${error.message}`);
+                return {
+                    message: `S4HANA Sales Order creation failed: ${error.message}`,
+                    indicator: 'N',
+                }
             }
         });
 
