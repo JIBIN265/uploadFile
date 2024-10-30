@@ -61,7 +61,7 @@ service SalesCatalogService {
     })                                              returns {
         message : String;
         indicator: String;
-        response : String;
+        salesorder : String;
 
     };
 

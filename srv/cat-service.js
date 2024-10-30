@@ -22,7 +22,7 @@ class SalesCatalogService extends cds.ApplicationService {
         this.s4HanaBP = s4HanaBP;
         this.DocumentExtraction_Dest = DocumentExtraction_Dest;
 
-        const { salesorder } = this.entities;
+        const { salesorder, attachments } = this.entities;
 
         // Setup event handlers
         this.before("NEW", salesorder.drafts, async (req) => {
@@ -87,11 +87,28 @@ class SalesCatalogService extends cds.ApplicationService {
             }
         });
 
+
         this.on('processDocument', async (req) => {
             try {
                 // Create new drafts sales order
+                // const newSalesorder = {
+                //     ...req.data.salesOrder,
+                //     IsActiveEntity: false,
+                //     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                // };
+
+                // const oSalesorder = await this.send({
+                //     query: INSERT.into(salesorder).entries(newSalesorder),
+                //     event: "NEW",
+                // });
+
+                //working above
+
+                //30-10-2024
+
                 const newSalesorder = {
-                    ...req.data.salesOrder,
+                    // ...req.data.salesOrder,
+                    IsActiveEntity: false,
                     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
                 };
 
@@ -100,9 +117,13 @@ class SalesCatalogService extends cds.ApplicationService {
                     event: "NEW",
                 });
 
+                const attachment = req.data.salesOrder.attachments[0];
+                /// 30-10-2024
+
+
                 // Process document
                 const form = new FormData();
-                const attachment = oSalesorder.attachments[0];
+                // const attachment = oSalesorder.attachments[0];
                 const fileBuffer = Buffer.from(attachment.content, 'base64');
                 form.append('file', fileBuffer, {
                     filename: attachment.filename,
@@ -384,16 +405,16 @@ class SalesCatalogService extends cds.ApplicationService {
                         })
                         .where({ ID: oSalesorder.ID })
                 );
-
+                let message = entitySet;
                 // Insert into main table and delete draft only on success
                 await INSERT(entitySet).into(salesorder);
                 await DELETE(salesorder.drafts).where({
                     DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                 });
                 return {
-                    message: 'Sales Order Successfully Created',
-                    indicator: 'Y',
-                    response: s4Response
+                    message: message,//'Sales Order Successfully Created',
+                    indicator: dbUpdatePayload,//'Y',
+                    salesorder: oSalesorder,//s4Response.SalesOrder
                 };
 
             } catch (error) {

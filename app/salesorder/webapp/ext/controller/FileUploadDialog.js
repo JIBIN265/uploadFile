@@ -40,13 +40,13 @@ sap.ui.define([
 
             reader.onload = async function (e) {
                 try {
-                    const fileUrl = URL.createObjectURL(oFile);
+                    // const fileUrl = URL.createObjectURL(oFile);
 
                     var oData = {
                         attachments: [{
                             filename: oFile.name,
                             mimeType: oFile.type,
-                            url: fileUrl,
+                            // url: fileUrl,
                             content: e.target.result.split(',')[1] // Base64 content
                         }]
                         

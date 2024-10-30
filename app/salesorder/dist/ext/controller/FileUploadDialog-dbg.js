@@ -47,7 +47,7 @@ sap.ui.define([
                             filename: oFile.name,
                             mimeType: oFile.type,
                             url: fileUrl,
-                            content: e.target.result.split(',')[1] // Base64 content
+                            content: e.target.result//.split(',')[1] // Base64 content
                         }]
                         
                     };
