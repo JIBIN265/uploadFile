@@ -2,6 +2,7 @@ const cds = require('@sap/cds');
 const SequenceHelper = require("./lib/SequenceHelper");
 const FormData = require('form-data');
 const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
+const { Store } = require('@sap/cds');
 
 const MAX_RETRIES = 30;
 const RETRY_DELAY_MS = 3000;
@@ -22,7 +23,7 @@ class SalesCatalogService extends cds.ApplicationService {
         this.s4HanaBP = s4HanaBP;
         this.DocumentExtraction_Dest = DocumentExtraction_Dest;
 
-        const { salesorder, attachments } = this.entities;
+        const { salesorder, SalesOrderItem, attachments } = this.entities;
 
         // Setup event handlers
         this.before("NEW", salesorder.drafts, async (req) => {
@@ -90,26 +91,22 @@ class SalesCatalogService extends cds.ApplicationService {
 
         this.on('processDocument', async (req) => {
             try {
-                // Create new drafts sales order
-                // const newSalesorder = {
-                //     ...req.data.salesOrder,
-                //     IsActiveEntity: false,
-                //     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
-                // };
 
-                // const oSalesorder = await this.send({
-                //     query: INSERT.into(salesorder).entries(newSalesorder),
-                //     event: "NEW",
-                // });
+                const decodedBuffer = Buffer.from(req.data.salesOrder.attachments[0].content, 'base64');
+                // entitySet.attachments = attachDocs;
+                const attachDocs = {
+                    mimeType: req.data.salesOrder.attachments[0].mimeType,
+                    filename: req.data.salesOrder.attachments[0].filename,
+                    content: decodedBuffer,
+                    url: req.data.salesOrder.attachments[0].url,
+                    DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                };
 
-                //working above
-
-                //30-10-2024
 
                 const newSalesorder = {
-                    // ...req.data.salesOrder,
                     IsActiveEntity: false,
                     DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                    attachments: attachDocs
                 };
 
                 const oSalesorder = await this.send({
@@ -117,14 +114,11 @@ class SalesCatalogService extends cds.ApplicationService {
                     event: "NEW",
                 });
 
-                const attachment = req.data.salesOrder.attachments[0];
-                /// 30-10-2024
-
 
                 // Process document
+                const attachment = req.data.salesOrder.attachments[0];
                 const form = new FormData();
-                // const attachment = oSalesorder.attachments[0];
-                const fileBuffer = Buffer.from(attachment.content, 'base64');
+                const fileBuffer = Buffer.from(attachment.content.split(',')[1], 'base64');
                 form.append('file', fileBuffer, {
                     filename: attachment.filename,
                     contentType: attachment.mimeType
@@ -270,7 +264,6 @@ class SalesCatalogService extends cds.ApplicationService {
                         INSERT.into('A_SalesOrder').entries(salesOrderPayload)
                     );
 
-                    // Update draft with success data
                     const dbUpdatePayload = {
                         SalesOrder: s4Response.SalesOrder,
                         SalesOrderType: s4Response.SalesOrderType,
@@ -280,18 +273,11 @@ class SalesCatalogService extends cds.ApplicationService {
                         RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
                         Status: 'Sales Order Created',
                         DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
-                        IsActiveEntity: true,
-                        to_Item: lineItems.map((item, index) => ({
-                            DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
-                            IsActiveEntity: true,
-                            SalesOrderItem: String((index + 1) * 10),
-                            Material: item.customerMaterialNumber,
-                            SalesOrderItemText: item.description,
-                            RequestedQuantity: parseFloat(item.quantity)
-                        }))
+                        IsActiveEntity: true
                     };
 
-                    // Update draft
+
+                    // Update sales order draft
                     await db.run(
                         UPDATE(salesorder.drafts)
                             .set(dbUpdatePayload)
@@ -309,8 +295,24 @@ class SalesCatalogService extends cds.ApplicationService {
                             .where({ ID: oSalesorder.ID })
                     );
 
+                    const lineItemsPayload = lineItems.map((item, index) => ({
+                        SalesOrder: s4Response.SalesOrder, // Link to parent sales order
+                        SalesOrderItem: String((index + 1) * 10),
+                        Material: item.customerMaterialNumber,
+                        SalesOrderItemText: item.description,
+                        RequestedQuantity: parseFloat(item.quantity),
+                        IsActiveEntity: true,
+                        up__ID: oSalesorder.ID,
+                        DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                    }));
+
+
+                    entitySet.to_Item = lineItemsPayload;
                     // Insert into main table and delete draft only on success
                     await INSERT(entitySet).into(salesorder);
+
+                    // Optional: Delete the draft after successful insertion
+
                     await DELETE(salesorder.drafts).where({
                         DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                     });
@@ -377,18 +379,11 @@ class SalesCatalogService extends cds.ApplicationService {
                     RequestedDeliveryDate: s4Response.RequestedDeliveryDate,
                     Status: 'Sales Order Created',
                     DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
-                    IsActiveEntity: true,
-                    to_Item: req.data.to_Item.map((item, index) => ({
-                        DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
-                        IsActiveEntity: true,
-                        SalesOrderItem: String((index + 1) * 10),
-                        Material: item.customerMaterialNumber,
-                        SalesOrderItemText: item.description,
-                        RequestedQuantity: parseFloat(item.quantity)
-                    }))
+                    IsActiveEntity: true
                 };
 
-                // Update draft
+
+                // Update sales order draft
                 await db.run(
                     UPDATE(salesorder.drafts)
                         .set(dbUpdatePayload)
@@ -405,16 +400,30 @@ class SalesCatalogService extends cds.ApplicationService {
                         })
                         .where({ ID: oSalesorder.ID })
                 );
-                let message = entitySet;
+
+                const lineItemsPayload = lineItems.map((item, index) => ({
+                    SalesOrder: s4Response.SalesOrder, // Link to parent sales order
+                    SalesOrderItem: String((index + 1) * 10),
+                    Material: item.customerMaterialNumber,
+                    SalesOrderItemText: item.description,
+                    RequestedQuantity: parseFloat(item.quantity),
+                    IsActiveEntity: true,
+                    up__ID: oSalesorder.ID,
+                    DraftAdministrativeData_DraftUUID: cds.utils.uuid(),
+                }));
+
+
+                entitySet.to_Item = lineItemsPayload;
                 // Insert into main table and delete draft only on success
                 await INSERT(entitySet).into(salesorder);
+
                 await DELETE(salesorder.drafts).where({
                     DraftAdministrativeData_DraftUUID: oSalesorder.DraftAdministrativeData_DraftUUID,
                 });
                 return {
-                    message: message,//'Sales Order Successfully Created',
-                    indicator: dbUpdatePayload,//'Y',
-                    salesorder: oSalesorder,//s4Response.SalesOrder
+                    message: 'Sales Order Successfully Created',
+                    indicator: 'Y',
+                    salesorder: s4Response.SalesOrder
                 };
 
             } catch (error) {
