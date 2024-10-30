@@ -300,3 +300,19 @@ annotate service.SalesOrderItem with @(UI.LineItem #i18nItemDetails: [
 //     SourceProperties: [ID],
 //     TargetEntities  : ['']
 // }});
+annotate service.attachments with @(UI.LineItem #tableMacro: []);
+
+annotate service.attachments with @(UI.FieldGroup #AdminData: {
+    $Type: 'UI.FieldGroupType',
+    Data : [
+        {
+            $Type: 'UI.DataField',
+            Value: createdBy,
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: createdAt,
+        },
+
+    ],
+}, );

@@ -29,7 +29,7 @@
     "querystring": "^0.2.1"
   },
   "peerDependencies": {
-    "@sap/cds": "^8.3.1"
+    "@sap/cds": "^8.4.0"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^1.4.0",
@@ -40,7 +40,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "cds": "npm i @sap/cds && npm add @cap-js/attachments",
+    "cds": "npm i @sap/cds",
     "undeploy": "cf undeploy salesorder --delete-services --delete-service-keys --delete-service-brokers",
     "build": "rimraf resources mta_archives && mbt build --mtar archive",
     "deploy": "cf deploy mta_archives/archive.mtar --retries 1",

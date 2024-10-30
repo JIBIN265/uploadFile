@@ -5,14 +5,11 @@
 sap.ui.define(
 
     [
-
-        'sap/fe/core/PageController',
-
-        "sap/ui/model/json/JSONModel"
+        'sap/fe/core/PageController'
 
     ],
 
-    function (PageController, JSONModel) {
+    function (PageController) {
 
         'use strict';
 
@@ -30,51 +27,8 @@ sap.ui.define(
 
             onInit: function () {
 
-                //     debugger
 
                 PageController.prototype.onInit.apply(this, arguments); // needs to be called to properly initialize the page controller
-
-                //     this._sValidPath = sap.ui.require.toUrl("sap/m/sample/PDFViewerEmbedded/sample.pdf");
-
-                //     this._sInvalidPath = sap.ui.require.toUrl("sap/m/sample/PDFViewerEmbedded/sample_nonexisting.pdf");
-
-                //     this._oModel = new JSONModel({
-
-                //         Source: this._sValidPath,
-
-                //         Title: "My Custom Title",
-
-                //         Height: "600px"
-
-                //     });
-
-                //     this.getView().setModel(this._oModel);
-
-                debugger;
-
-                // const oContext = this.getView().getBindingContext();
-
-                // if (oContext) {
-
-                //     this._attachDataReceivedEvent(oContext);
-
-                // } else {
-
-                //     this.getView().attachEventOnce("modelContextChange", () => {
-
-                //         debugger
-
-                //         const oNewContext = this.getView().getBindingContext();
-
-                //         if (oNewContext) {
-
-                //             this._attachDataReceivedEvent(oNewContext);
-
-                //         }
-
-                //     });
-
-                // }
 
             },
 
@@ -88,11 +42,9 @@ sap.ui.define(
 
              */
 
-            onBeforeRendering: function () {
+            // onBeforeRendering: function () {
 
-                debugger
-
-            },
+            // },
 
             /**
 
@@ -104,23 +56,10 @@ sap.ui.define(
 
              */
 
-            onAfterRendering: async function (oBindingContext) {
+            // onAfterRendering: async function () {
 
-                // debugger
 
-                // var oExtensionAPI = this.getExtensionAPI();
-
-                // var oContext = this.getView().getBindingContext();
-
-                // //Get Geo Map Controller. Full id: "zgeomovingobjectlistv4::MovingObjectObjectPage--fe::CustomSubSection::Geomap--GeoMapControl"
-
-                // var oGeomapController = oExtensionAPI.byId("salesorder::attachmentsViewPdfPagePage--_IDGenPDFViewer");
-
-                // debugger
-
-                //salesorder::attachmentsViewPdfPagePage--_IDGenPDFViewer
-
-            },
+            // },
 
             /**
 
@@ -136,73 +75,34 @@ sap.ui.define(
 
             //  }
 
-            _attachDataReceivedEvent: function (oContext) {
 
-                debugger
-
-                // const oBinding = oContext.getBinding(); // Get the binding object to attach the dataReceived event
-
-                // if (oBinding) {
-
-                //     oBinding.attachEventOnce("dataReceived", this.onDataLoaded.bind(this));
-
-                // }
+            handleFullScreen: function (oEvent) {
+                this.editFlow.getInternalRouting().switchFullScreen()
+                this.byId("salesorder::attachmentsViewPdfPagePage--enterFullScreenBtn").setVisible(false)
+                this.byId("salesorder::attachmentsViewPdfPagePage--exitFullScreenBtn").setVisible(true)
 
             },
 
-            onDataLoaded: function () {
-
-                debugger
-
-                // const oContext = this.getView().getBindingContext();
-
-                // if (oContext) {
-
-                //     const sContentUrl = oContext.getProperty("content"); // Assumes 'content' is the property for the PDF source URL
-
-                //     const oModel = new JSONModel({
-
-                //         Source: sContentUrl,
-
-                //         Title: "My Custom Title",
-
-                //         Height: "600px"
-
-                //     });
-
-                //     this.getView().setModel(oModel, "pdfModel");
-
-                //     const oPDFViewer = this.byId("_IDGenPDFViewer");
-
-                //     if (oPDFViewer) {
-
-                //         oPDFViewer.setSource(sContentUrl); // Setting source directly if needed
-
-                //     }
-
-                // }
-
+            handleExitFullScreen: function (oEvent) {
+                this.editFlow.getInternalRouting().switchFullScreen()
+                this.byId("salesorder::attachmentsViewPdfPagePage--enterFullScreenBtn").setVisible(true)
+                this.byId("salesorder::attachmentsViewPdfPagePage--exitFullScreenBtn").setVisible(false)
             },
 
-            onCorrectPathClick: function () {
-
-                // debugger
-
-                // this.extensionAPI.byId("salesorder::attachmentsViewPdfPagePage--_IDGenPDFViewer").setSource(this.getView().getBindingContext().getProperty("content"))
-
-                // debugger
-
+            handleClose: async function (oEvent) {
+                await this.getExtensionAPI().getRouting().navigateToRoute("/");
             },
 
-            isLoaded: function () {
-
-                debugger
-
-            },
-
-            onBack: function () {
-
-                this.getExtensionAPI().getRouting().navigateToRoute("/");
+            onBack: function (oEvent) {
+                var oContext = oEvent.getSource().getBindingContext();
+                if (oContext) {
+                    this.editFlow.getInternalRouting().navigateBackFromContext(oContext);
+                    //Also works
+                    // const routing = this.getExtensionAPI().getRouting();
+                    // routing.navigateToRoute('salesorderObjectPage', {
+                    //     "key": "ID=" + oContext.getProperty("up__ID") + ",IsActiveEntity=" + oContext.getProperty("IsActiveEntity")
+                    // });
+                }
 
             },
 

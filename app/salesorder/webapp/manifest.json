@@ -64,7 +64,8 @@
                 "sap.ui.core": {},
                 "sap.fe.templates": {},
                 "sap.f": {},
-                "sap.fe.core": {}
+                "sap.fe.core": {},
+                "sap.fe.macros": {}
             }
         },
         "contentDensities": {
@@ -230,7 +231,6 @@
                     "controlAggregation": "endColumnPages",
                     "options": {
                         "settings": {
-                            "entitySet": "attachments",
                             "viewName": "salesorder.ext.view.ViewPdfPage",
                             "contextPath": "/salesorder/attachments"
                         }
