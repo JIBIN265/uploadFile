@@ -1,20 +1,20 @@
 /* eslint-disable no-unused-vars */
- 
+
 /*eslint no-debugger: "off"*/
- 
+
 sap.ui.define(
- 
+
     [
         'sap/fe/core/PageController'
- 
+
     ],
- 
+
     function (PageController) {
- 
+
         'use strict';
- 
+
         return PageController.extend('salesorder.ext.view.ViewPdfPage', {
- 
+
             /**
  
              * Called when a controller is instantiated and its View controls (if available) are already created.
@@ -24,14 +24,14 @@ sap.ui.define(
              * @memberOf salesorder.ext.view.ViewPdfPage
  
              */
- 
+
             onInit: function () {
- 
- 
+
+
                 PageController.prototype.onInit.apply(this, arguments); // needs to be called to properly initialize the page controller
- 
+
             },
- 
+
             /**
  
              * Similar to onAfterRendering, but this hook is invoked before the controller's View is re-rendered
@@ -41,11 +41,11 @@ sap.ui.define(
              * @memberOf salesorder.ext.view.ViewPdfPage
  
              */
- 
+
             // onBeforeRendering: function () {
- 
+
             // },
- 
+
             /**
  
              * Called when the View has been rendered (so its HTML is part of the document). Post-rendering manipulations of the HTML could be done here.
@@ -55,12 +55,12 @@ sap.ui.define(
              * @memberOf salesorder.ext.view.ViewPdfPage
  
              */
- 
+
             // onAfterRendering: async function () {
- 
- 
+
+
             // },
- 
+
             /**
  
              * Called when the Controller is destroyed. Use this one to free resources and finalize activities.
@@ -68,31 +68,44 @@ sap.ui.define(
              * @memberOf salesorder.ext.view.ViewPdfPage
  
              */
- 
+
             //  onExit: function() {
- 
+
             //
- 
+
             //  }
- 
- 
+
+            // routing: {
+            //     onAfterBinding: async function (oBindingContext) {
+            //         debugger
+            //         if (!oBindingContext) { return; }
+            //         const aContext = oModel.bindContext(oBindingContext.getPath());
+            //         // Request the Entity
+            //         aContext.requestObject().then(data => {
+            //             oCloseFullScreen.setVisible(false)
+            //         })
+            //     }
+            // }
+
+            // },
             handleFullScreen: function (oEvent) {
                 this.editFlow.getInternalRouting().switchFullScreen()
                 this.byId("salesorder::attachmentsViewPdfPagePage--enterFullScreenBtn").setVisible(false)
                 this.byId("salesorder::attachmentsViewPdfPagePage--exitFullScreenBtn").setVisible(true)
- 
+
             },
- 
+
             handleExitFullScreen: function (oEvent) {
                 this.editFlow.getInternalRouting().switchFullScreen()
                 this.byId("salesorder::attachmentsViewPdfPagePage--enterFullScreenBtn").setVisible(true)
                 this.byId("salesorder::attachmentsViewPdfPagePage--exitFullScreenBtn").setVisible(false)
             },
- 
-            handleClose: async function (oEvent) {
-                await this.getExtensionAPI().getRouting().navigateToRoute("/");
+
+            handleClose: function (oEvent) {
+                this.editFlow.getInternalRouting().closeColumn()
+                //   await  this.editFlow.getInternalRouting().navigateToRoute("/")
             },
- 
+
             onBack: function (oEvent) {
                 var oContext = oEvent.getSource().getBindingContext();
                 if (oContext) {
@@ -103,11 +116,11 @@ sap.ui.define(
                     //     "key": "ID=" + oContext.getProperty("up__ID") + ",IsActiveEntity=" + oContext.getProperty("IsActiveEntity")
                     // });
                 }
- 
+
             },
- 
+
         });
- 
+
     }
- 
+
 );

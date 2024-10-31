@@ -7,43 +7,28 @@
         <content>
             <!-- File Uploader Section -->
             <l:VerticalLayout id="idGenVerticalLayout">
-                <HBox id="idFileGenHBox" backgroundDesign="Solid" fitContainer="true">
-                    <VBox id="idUploadGenVBox" class="sapUiSmallMarginEnd" fitContainer="true">
-                        <u:FileUploader style="Emphasized" id="idFileUploader" name="myFileUpload" 
-                        uploadUrl="salesorder/attachments" tooltip="Upload your file from local server" 
-                        fileType="pdf" placeholder="Choose or drag a file for upload...">                            <!-- Attach the change event -->
+                <HBox id="idFileGenHBox" backgroundDesign="Solid" fitContainer="true" justifyContent="Center" alignItems="Center">
+                    <VBox id="idUploadGenVBox" class="sapUiSmallMarginEnd" fitContainer="true" justifyContent="Center" alignItems="Center">
+                        <!-- Illustrated Message displayed when no file is uploaded -->
+                        <IllustratedMessage id="idIllustratedMessage" illustrationType="sapIllus-UploadToCloud" title="Extract Purchase Orders" description="Choose a PDF file for upload..."/>
 
-                        </u:FileUploader>
+                        <!-- FileUploader Control -->
+                        <u:FileUploader style="Emphasized" id="idFileUploader" name="myFileUpload" uploadUrl="salesorder/attachments" tooltip="Upload your file from local server" fileType="pdf" buttonOnly="true" change=".onFileUpload"/>
                     </VBox>
                 </HBox>
             </l:VerticalLayout>
 
             <!-- List Section with Custom List Item for Inputs -->
-            <List id="idUrlList">                <!--headerText="Additional Details">-->
+            <List id="idUrlList">
                 <items>
-
-
                     <CustomListItem id="idCustomListItem">
                         <HBox id="idGenHBox" class="sapUiSmallMargin" alignItems="Center">
-                            <!-- Extract PDF Checkbox -->
-                            <!-- <VBox id="idGenVBox" class="sapUiSmallMarginEnd">
-                            <Label id="idExtractPDFLabel" text="Extract PDF" />
-                            <CheckBox id="idExtractPdfCheckBox" selected="true" enabled="false"/>
-                        </VBox>-->
-                            <!-- Dropdown for Name -->
-                            <!-- <VBox id="idTypeGenVBox" class="sapUiSmallMarginEnd">
-                            <Label id="idTypeGenVBoxLabel" text="Type" required="true"/>
-                            <Select id="idGenVBoxSelect" autoAdjustWidth="true">
-                                <core:Item id="idTypeGenOneItem" key="Type1" text="Type 1"/>
-                                <core:Item id="idTypeGenTwoItem" key="Type2" text="Type 2"/>
-                                <core:Item id="idTypeGenThreeItem" key="Type3" text="Type 3"/>
-                            </Select>
-                        </VBox> -->
                             <!-- Progress Indicator -->
                             <VBox id="idProgressGenVBox" class="sapUiSmallMarginEnd" width="100%">
                                 <Label id="idProgressGenLabel" text="Progress"/>
                                 <ProgressIndicator id="idProgressIndicator" displayValue="0%"/>
                             </VBox>
+                            <!-- Extract PDF Checkbox -->
                             <VBox id="idGenVBox" class="sapUiSmallMarginEnd">
                                 <Label id="idExtractPDFLabel" text="Extract PDF" />
                                 <CheckBox id="idExtractPdfCheckBox" selected="true" enabled="false"/>
