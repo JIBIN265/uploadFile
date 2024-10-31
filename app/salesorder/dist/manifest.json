@@ -17,7 +17,7 @@
         },
         "dataSources": {
             "mainService": {
-                "uri": "/odata/v4/sales-catalog/",
+                "uri": "odata/v4/sales-catalog/",
                 "type": "OData",
                 "settings": {
                     "annotations": [],
@@ -64,8 +64,7 @@
                 "sap.ui.core": {},
                 "sap.fe.templates": {},
                 "sap.f": {},
-                "sap.fe.core": {},
-                "sap.fe.macros": {}
+                "sap.fe.core": {}
             }
         },
         "contentDensities": {
@@ -209,6 +208,7 @@
                     "controlAggregation": "endColumnPages",
                     "options": {
                         "settings": {
+                            "entitySet": "attachments",
                             "viewName": "salesorder.ext.view.ViewPdfPage",
                             "contextPath": "/salesorder/attachments"
                         }

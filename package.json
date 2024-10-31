@@ -79,11 +79,8 @@
         "auth": "xsuaa"
       },
       "[hybrid]": {
-        "auth": "mocked",
-        "attachments": {
-          "kind": "s3",
-          "scan": true
-        }
+        "auth": "xsuaa",
+        "db": "hana"
       },
       "BPA_WORKFLOW": {
         "kind": "rest",
