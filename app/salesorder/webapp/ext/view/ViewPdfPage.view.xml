@@ -4,7 +4,7 @@
 	xmlns:f="sap.f"
 	xmlns:macros="sap.fe.macros"
 	xmlns:html="http://www.w3.org/1999/xhtml" controllerName="salesorder.ext.view.ViewPdfPage">
-	<Page id="ViewPdfPage" title="{i18n&gt;ViewPdfPageTitle}" showNavButton="true" navButtonPress=".onBack" enableScrolling="true">
+	<Page id="ViewPdfPage" title="{i18n>ViewPdfPageTitle}" showNavButton="true" navButtonPress=".onBack" enableScrolling="true">
 		<content>
 			<FlexBox id="_IDGenFlexBox" direction="Column" renderType="Div" class="sapUiSmallMargin" fitContainer="true">
 				<OverflowToolbar id="_IDGenOverflowToolbar1">
