@@ -1,7 +1,9 @@
 sap.ui.define([
     "sap/m/MessageToast",
-    "sap/m/Button"
-], function (MessageToast, Button) {
+    "sap/m/Button",
+    "sap/ui/core/message/Message",
+    "sap/ui/core/message/MessageType"
+], function (MessageToast, Button, Message, MessageType) {
     'use strict';
 
     return {
@@ -31,7 +33,7 @@ sap.ui.define([
                 });
             }
 
-            this.fragmentTwo.then(function (dialog) {
+            this.fragmentTwo.then(async function (dialog) {
                 dialog.setBindingContext(contextData.oContext);
                 dialog.setModel(contextData.oModel);
 
@@ -51,7 +53,7 @@ sap.ui.define([
 
                 // Continue button with contextData.oEditFlow
                 dialog.setBeginButton(new Button({
-                    text: "Continue",
+                    text: "Submit",
                     press: async function (oEvent) {
                         debugger;
                         await contextData.oEditFlow.saveDocument(contextData.oContext);
@@ -59,10 +61,17 @@ sap.ui.define([
                         dialog.close();
                     }
                 }));
-
-                var oAttachmentsContext = contextData.oContext.getPath() + "/attachments";
-                var oTable = dialog.getContent()[0];
-                dialog.getModel("ui").setProperty("/isEditable", true);
+                // var oInfoMessage = new Message({
+                //     type: MessageType.Info,
+                //     message: await contextData.oEditFlow.getView().getModel("i18n").getResourceBundle().getText("attachmentMessage")
+                //     // message: 'The first file will be extracted, and any additional files will be added as attachments.'
+                // });
+                // var oAttachmentsContext = contextData.oContext.getPath() + "/attachments";
+                // var oTable = dialog.getContent()[0].getItems()[0]
+                // if (oTable) {
+                //     oTable.addMessage(oInfoMessage);
+                // }
+                await dialog.getModel("ui").setProperty("/isEditable", true);
 
                 dialog.open();
             });
