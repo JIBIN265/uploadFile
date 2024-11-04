@@ -163,6 +163,16 @@
                                             "visible": true,
                                             "enabled": true,
                                             "text": "Upload PDF"
+                                        },
+                                        "ExtractPdf": {
+                                            "press": "salesorder.ext.controller.ExtractPdf.ExtractPdf",
+                                            "visible": true,
+                                            "enabled": true,
+                                            "text": "Extract PDF",
+                                            "position": {
+                                                "placement": "Before",
+                                                "anchor": "UploadPdf"
+                                            }
                                         }
                                     }
                                 }
@@ -222,6 +232,15 @@
             "type": "XML",
             "async": true,
             "id": "appRootView"
+        },
+        "extends": {
+            "extensions": {
+                "sap.ui.controllerExtensions": {
+                    "sap.fe.templates.ObjectPage.ObjectPageController#salesorder::salesorderObjectPage": {
+                        "controllerName": "salesorder.ext.controller.SalesorderObjectPageCustom"
+                    }
+                }
+            }
         }
     },
     "sap.fiori": {

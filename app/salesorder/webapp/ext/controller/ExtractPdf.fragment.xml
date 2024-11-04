@@ -1,0 +1,14 @@
+<core:FragmentDefinition xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:macros="sap.fe.macros">
+    <Dialog id="_IDGenDialog1" title="Dialog with Table Building Block" resizable="true" draggable="true"  contentWidth="35%">
+        <VBox id="_IDGenVBox" class="sapUiMediumMargin" > 
+            <macros:Table metaPath="/salesorder/attachments/@com.sap.vocabularies.UI.v1.LineItem" disableCopyToClipboard="true"
+            enableExport="false" isSearchable="false" enableFullScreen="false" enablePaste="false"  
+           personalization="false"  enableAutoColumnWidth="true" id="LineItemTable" busy="{ui>/isBusy}" ignoredFields="note">
+
+            </macros:Table>
+        </VBox>
+    </Dialog>
+</core:FragmentDefinition>

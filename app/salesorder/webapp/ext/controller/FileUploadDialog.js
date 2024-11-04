@@ -49,20 +49,20 @@ sap.ui.define([
                             url: fileUrl,
                             content: e.target.result
                         }]
-                        
+
                     };
 
-                    let sActionName = "processDocument";
-                    let mParameters = {
-                        model: oEditFlow.getView().getModel(),
-                        parameterValues: [{ name: 'salesOrder', value: oData }],
-                        invocationGrouping: 'isolated',
-                        skipParameterDialog: true
-                    };
+                    // let sActionName = "processDocument";
+                    // let mParameters = {
+                    //     model: oEditFlow.getView().getModel(),
+                    //     parameterValues: [{ name: 'salesOrder', value: oData }],
+                    //     invocationGrouping: 'isolated',
+                    //     skipParameterDialog: true
+                    // };
 
-                    // Invoke action to process the document
-                    debugger
-                    const oContext = await oEditFlow.invokeAction(sActionName, mParameters);
+                    // // Invoke action to process the document
+                    // debugger
+                    // const oContext = await oEditFlow.invokeAction(sActionName, mParameters);
                 } catch (oError) {
                     MessageToast.show("Error uploading file: " + oError.message);
                 } finally {
@@ -84,6 +84,11 @@ sap.ui.define([
             var that = this;
             var oModel = this.getModel();
             var oEditFlow = this.getEditFlow();
+            var sPath = "/salesorder";
+            var oListBinding = oModel.bindList(sPath);
+            var oContext = oListBinding.create();
+            oContext.created();
+            debugger
 
             // Check if the dialog is already loaded
             if (!this.pDialog) {
