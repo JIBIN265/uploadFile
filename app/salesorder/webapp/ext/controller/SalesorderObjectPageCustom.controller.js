@@ -32,7 +32,6 @@ sap.ui.define(['sap/ui/core/mvc/ControllerExtension'], function (ControllerExten
 				onAfterBinding: async function (oBindingContext) {
 
 					if (!oBindingContext) { return; }
-					debugger
 					const oExtensionAPI = this.base.getExtensionAPI();
 					const oModel = oExtensionAPI.getModel();
 

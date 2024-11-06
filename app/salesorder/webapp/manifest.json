@@ -147,10 +147,27 @@
                                 }
                             },
                             "controlConfiguration": {
+                                "@com.sap.vocabularies.UI.v1.SelectionFields": {
+                                    "useSemanticDateRange": true,
+                                    "layout": "CompactVisual"
+                                },
                                 "@com.sap.vocabularies.UI.v1.LineItem": {
                                     "tableSettings": {
                                         "type": "ResponsiveTable",
-                                        "selectAll": true
+                                        "selectAll": true,
+                                        "quickVariantSelection": {
+                                            "paths": [
+                                                {
+                                                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#open"
+                                                },
+                                                {
+                                                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#accepted"
+                                                },
+                                                {
+                                                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#canceled"
+                                                }
+                                            ]
+                                        }
                                     }
                                 }
                             },
@@ -158,12 +175,7 @@
                             "content": {
                                 "header": {
                                     "actions": {
-                                        "UploadPdf": {
-                                            "press": "salesorder.ext.controller.FileUploadDialog.FileUploadDialog",
-                                            "visible": true,
-                                            "enabled": true,
-                                            "text": "Upload PDF"
-                                        },
+
                                         "ExtractPdf": {
                                             "press": "salesorder.ext.controller.ExtractPdf.ExtractPdf",
                                             "visible": true,
@@ -176,6 +188,23 @@
                                         }
                                     }
                                 }
+                            },
+                            "views": {
+                                "paths": [
+                                    {
+                                        "primary": [
+                                            {
+                                                "annotationPath": "com.sap.vocabularies.UI.v1.Chart#chartView"
+                                            }
+                                        ],
+                                        "secondary": [
+                                            {
+                                                "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#tableView"
+                                            }
+                                        ],
+                                        "defaultPath": "both"
+                                    }
+                                ]
                             }
                         }
                     },

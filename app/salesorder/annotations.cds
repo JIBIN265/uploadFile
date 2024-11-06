@@ -57,7 +57,55 @@ annotate service.salesorder with
         Value: TransactionCurrency,
         Label: '{i18n>TransactionCurrency}',
     },
-]);
+],
+    UI.SelectionPresentationVariant #tableView : {
+        $Type : 'UI.SelectionPresentationVariantType',
+        PresentationVariant : {
+            $Type : 'UI.PresentationVariantType',
+            Visualizations : [
+                '@UI.LineItem',
+            ],
+        },
+        SelectionVariant : {
+            $Type : 'UI.SelectionVariantType',
+            SelectOptions : [
+            ],
+        },
+        Text : 'Table View',
+    },
+    Analytics.AggregatedProperty #documentId_countdistinct : {
+        $Type : 'Analytics.AggregatedPropertyType',
+        Name : 'documentId_countdistinct',
+        AggregatableProperty : documentId,
+        AggregationMethod : 'countdistinct',
+        ![@Common.Label] : 'By Number of Documents',
+    },
+    UI.Chart #chartView : {
+        $Type : 'UI.ChartDefinitionType',
+        ChartType : #Column,
+        Dimensions : [
+            SalesOrganization,
+        ],
+        DynamicMeasures : [
+            '@Analytics.AggregatedProperty#documentId_countdistinct',
+        ],
+        Title : 'Orders By Sales Org',
+    },
+    UI.SelectionPresentationVariant #chartView : {
+        $Type : 'UI.SelectionPresentationVariantType',
+        PresentationVariant : {
+            $Type : 'UI.PresentationVariantType',
+            Visualizations : [
+                '@UI.Chart#chartView',
+            ],
+        },
+        SelectionVariant : {
+            $Type : 'UI.SelectionVariantType',
+            SelectOptions : [
+            ],
+        },
+        Text : 'Chart View',
+    },);
 
 annotate service.salesorder with @(
     UI.FieldGroup #GeneratedGroup: {
@@ -173,6 +221,15 @@ annotate service.salesorder with @(
             $Type: 'UI.DataField',
             Value: SalesOrder,
         },
+    },
+    PresentationVariant          : {
+        Text          : 'Default',
+        Visualizations: ['@UI.LineItem'],
+        SortOrder     : [{
+            $Type     : 'Common.SortOrderType',
+            Property  : documentId,
+            Descending: true
+        }]
     },
     UI.HeaderFacets              : [{
         $Type : 'UI.ReferenceFacet',
@@ -316,3 +373,141 @@ annotate service.attachments with @(UI.FieldGroup #AdminData: {
 
     ],
 }, );
+
+// annotate service.salesorder with @(
+//     Analytics.AggregatedProperty #documentId_countdistinct: {
+//         $Type               : 'Analytics.AggregatedPropertyType',
+//         Name                : 'documentId_countdistinct',
+//         AggregatableProperty: documentId,
+//         AggregationMethod   : 'countdistinct',
+//         ![@Common.Label]    : '{i18n>DocumentId}',
+//     },
+//     UI.Chart #alpChart                                 : {
+//         $Type          : 'UI.ChartDefinitionType',
+//         ChartType      : #Column,
+//         Dimensions     : [SalesOrganization, ],
+//         DynamicMeasures: ['@Analytics.AggregatedProperty#documentId_countdistinct', ],
+//         Title          : '{i18n>SalesOrderBySalesOrganization}',
+//     }
+// );
+annotate service.salesorder with @UI: {
+    SelectionVariant #canceled: {
+        $Type           : 'UI.SelectionVariantType',
+        ID              : 'canceled',
+        Text            : 'canceled',
+        Parameters      : [
+
+        ],
+        FilterExpression: '',
+        SelectOptions   : [{
+            $Type       : 'UI.SelectOptionType',
+            PropertyName: SalesOrganization,
+            Ranges      : [{
+                $Type : 'UI.SelectionRangeType',
+                Sign  : #I,
+                Option: #EQ,
+                Low   : '5000',
+            }, ],
+        }, ],
+    },
+    SelectionVariant #open    : {
+        $Type           : 'UI.SelectionVariantType',
+        ID              : 'open',
+        Text            : 'open',
+        Parameters      : [
+
+        ],
+        FilterExpression: '',
+        SelectOptions   : [{
+            $Type       : 'UI.SelectOptionType',
+            PropertyName: SalesOrganization,
+            Ranges      : [{
+                $Type : 'UI.SelectionRangeType',
+                Sign  : #I,
+                Option: #NE,
+                Low   : '5000',
+            }, ],
+        }, ],
+    },
+    SelectionVariant #accepted: {
+        $Type           : 'UI.SelectionVariantType',
+        ID              : 'accepted',
+        Text            : 'accepted',
+        Parameters      : [
+
+        ],
+        FilterExpression: '',
+        SelectOptions   : [{
+            $Type       : 'UI.SelectOptionType',
+            PropertyName: SalesOrganization,
+            Ranges      : [{
+                $Type : 'UI.SelectionRangeType',
+                Sign  : #I,
+                Option: #EQ,
+                Low   : '4000',
+            }, ],
+        }, ],
+    }
+};
+annotate service.salesorder with @Aggregation.ApplySupported: {
+  Transformations       : [
+    'aggregate',
+    'topcount',
+    'bottomcount',
+    'identity',
+    'concat',
+    'groupby',
+    'filter',
+    'expand',
+    'search'
+  ],
+  Rollup                : #None,
+  PropertyRestrictions  : true,
+  GroupableProperties   : [
+    SalesOrder,
+    SalesOrderDate,
+    SalesOrderType,
+    SalesOrganization,
+    DistributionChannel,
+    createdBy,
+  ],
+  AggregatableProperties: [
+    {Property: documentId, }
+  ],
+};
+// annotate service.salesorder with @(
+//     UI.Chart #visualFilter : {
+//         $Type : 'UI.ChartDefinitionType',
+//         ChartType : #Bar,
+//         Dimensions : [
+//             to_Item.SalesOrderItem,
+//         ],
+//         DynamicMeasures : [
+//             '@Analytics.AggregatedProperty#documentId_countdistinct',
+//         ],
+//     },
+//     UI.PresentationVariant #visualFilter : {
+//         $Type : 'UI.PresentationVariantType',
+//         Visualizations : [
+//             '@UI.Chart#visualFilter',
+//         ],
+//     }
+// );
+// annotate service.salesorder with {
+//     to_Item @Common.ValueList #visualFilter : {
+//         $Type : 'Common.ValueListType',
+//         CollectionPath : 'salesorder',
+//         Parameters : [
+//             {
+//                 $Type : 'Common.ValueListParameterInOut',
+//                 LocalDataProperty : to_Item.SalesOrderItem,
+//                 ValueListProperty : 'to_Item.SalesOrderItem',
+//             },
+//         ],
+//         PresentationVariantQualifier : 'visualFilter',
+//     }
+// };
+annotate service.salesorder with {
+    SalesOrganization @Common.Label : 'Sales Organization'
+};
+

@@ -1,6 +1,6 @@
 <core:FragmentDefinition xmlns:core="sap.ui.core" xmlns:m="sap.ui.model" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">
     <Dialog 
-        core:require="{handler: 'salesorder/ext/controller/Viewpdf'}"
+        core:require="{handler: 'salesorder/ext/controller/ExtractPdf'}"
         id="pdfDialog" 
         title="PDF Viewer"
         

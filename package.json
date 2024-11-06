@@ -117,6 +117,10 @@
           "path": "/sap/opu/odata/sap/API_BUSINESS_PARTNER"
         }
       }
+    },
+    "features": {
+      "preserve_computed": true,
+      "odata_new_parser": false
     }
   },
   "workspaces": [

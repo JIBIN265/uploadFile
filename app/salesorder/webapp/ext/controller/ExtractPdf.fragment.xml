@@ -1,5 +1,6 @@
-<core:FragmentDefinition xmlns="sap.m"
-    xmlns:core="sap.ui.core"
+<core:FragmentDefinition xmlns:table="sap.fe.macros.table"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core" core:require="{handler: 'salesorder/ext/controller/ExtractPdf'}"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:macros="sap.fe.macros">
     <Dialog id="_IDGenDialog1" title="Upload File for Extraction" resizable="true" draggable="true" contentWidth="35%">
@@ -8,7 +9,9 @@
             <MessageStrip id="_IDGenMessageStrip" text="{i18n>attachmentMessage}" showIcon="true" showCloseButton="true" class="sapUiResponsiveMargin">
             </MessageStrip>
             <macros:Table metaPath="/salesorder/attachments/@com.sap.vocabularies.UI.v1.LineItem" disableCopyToClipboard="true" enableExport="false" isSearchable="false" enableFullScreen="false" enablePaste="false" personalization="false" enableAutoColumnWidth="true" id="LineItemTable" busy="{ui>/isBusy}" ignoredFields="note">
-
+                <macros:actions >
+                    <table:Action id="_IDGenAction" enabled="true" text="Submit" press="handler.onPress" modelContextChange="onPress"/>
+                </macros:actions>
             </macros:Table>
         </VBox>
     </Dialog>
