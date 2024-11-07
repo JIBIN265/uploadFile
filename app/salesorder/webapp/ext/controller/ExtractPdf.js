@@ -9,7 +9,29 @@ sap.ui.define([
     return {
         onPress: async function (oEvent) {
             debugger;
-            oEvent.getSource().getParent().getParent().getParent().getAggregation('items')
+            var oitems = oEvent.getSource().getParent().getParent().getParent().getAggregation('items')
+            if (oitems.length === 0) {
+                MessageToast.show("Add at least one item to the table before submitting.");
+                return;
+            }
+            var contextData = {
+                oEditFlow: this.getEditFlow(),
+                oModel:this.getModel(),
+                oContext:  oEvent.getSource().getBindingContext(),
+                oTable: this.byId('salesorder::salesorderList--fe::table::salesorder::LineItem::Table')
+            };
+            contextData.oEditFlow.saveDocument(contextData.oContext)
+            .then(() => {
+                debugger
+                contextData.oTable.refresh();
+                let sPath = contextData.oContext.getPath().replace(false, true);
+                //get object
+                let oBindContext = contextData.oModel.bindContext(sPath);
+                contextData.oEditFlow.getInternalRouting().navigateToContext(oBindContext);
+        
+            });
+
+            oEvent.getSource().getParent().getParent().getParent().getParent().getParent().getParent().getParent().close()
             // Access the table in the dialog
             // var oTable = dialog.getAggregation("content")[0].getAggregation("items")[1];
             // Create a new root entity record
@@ -28,12 +50,14 @@ sap.ui.define([
         ExtractPdf: async function (oEvent) {
             var that = this;
             var oModel = this.getModel();
-
+            debugger
             // Create an object to hold necessary references
             var contextData = {
                 oEditFlow: this.getEditFlow(),
                 oModel: oModel,
-                oContext: null // to hold context after creation
+                oContext: null, // to hold context after creation
+                iD: null,
+                oTable: this.byId('salesorder::salesorderList--fe::table::salesorder::LineItem::Table')
             };
 
             // Create a new root entity record
@@ -42,7 +66,7 @@ sap.ui.define([
             contextData.oContext = oListBinding.create(); // Store context here
             await contextData.oContext.created();
             await contextData.oEditFlow.getInternalRouting().navigateToContext(contextData.oContext);
-
+            contextData.iD = contextData.oContext.getProperty('ID')
             if (!this.fragmentTwo) {
                 this.fragmentTwo = this.loadFragment({
                     id: "fragmentTwo",
@@ -62,7 +86,8 @@ sap.ui.define([
                         debugger;
                         await contextData.oEditFlow.getInternalRouting().navigateBackFromContext(contextData.oContext);
                         contextData.oContext.delete();
-                        oEvent.getSource().getParent().getParent().getContent()[0].getContent().refresh();
+                        contextData.oTable.refresh();
+                        // oEvent.getSource().getParent().getParent().getContent()[0].getContent().refresh();
                         contextData.oEditFlow.getView().getModel("ui").setProperty("/isEditable", false);
                         dialog.close();
 
@@ -70,35 +95,32 @@ sap.ui.define([
                 }));
 
                 // Continue button with contextData.oEditFlow
-                dialog.setBeginButton(new Button({
-                    text: "Submit",
-                    enabled: "({= ${salesorder>/attachments}.length})",
-                    press: async function (oEvent) {
-                        debugger;
-                        // Access the table in the dialog
-                        var oTable = dialog.getAggregation("content")[0].getAggregation("items")[1];
-                        // Create a new root entity record
-                        var sPath = contextData.oContext.sPath + "/attachments";
-                        var oListBinding = await contextData.oModel.bindList(sPath, contextData.oContext);
-                        await oListBinding.refresh()
-                        var aContexts = await oListBinding.getContexts();
-                        if (aContexts.length === 0) {
-                            MessageToast.show("Add at least one item to the table before submitting.");
-                            return;
-                        }
-                        await contextData.oEditFlow.saveDocument(contextData.oContext);
-                        oEvent.getSource().getParent().getParent().getContent()[0].getContent().refresh();
-                        dialog.close();
-                    }
-                }));
+                // dialog.setBeginButton(new Button({
+                //     text: "Submit",
+                //     press: async function (oEvent) {
+                //         debugger;
+                     
+                //         contextData.oEditFlow.saveDocument(contextData.oContext)
+                //             .then(() => {
+                //                 debugger
+                //                 contextData.oTable.refresh();
+                //                 let sPath = contextData.oContext.getPath().replace(false, true);
+                //                 //get object
+                //                 let oBindContext = contextData.oModel.bindContext(sPath);
+                //                 contextData.oEditFlow.getInternalRouting().navigateToContext(oBindContext);
+                //             });
+
+                //         dialog.close();     
+                //     }
+                // }));
                 // var oInfoMessage = new Message({
                 //     type: MessageType.Info,
                 //     message: await contextData.oEditFlow.getView().getModel("i18n").getResourceBundle().getText("attachmentMessage")
                 //     // message: 'The first file will be extracted, and any additional files will be added as attachments.'
                 // });
                 // var oAttachmentsContext = contextData.oContext.getPath() + "/attachments";
-                debugger;
-                var oTable = dialog.getContent()[0].getItems()[1]
+                // debugger;
+                // var oTable = dialog.getContent()[0].getItems()[1]
                 // if (oTable) {
                 //     oTable.addMessage(oInfoMessage);
                 // }

@@ -1,111 +1,103 @@
 using SalesCatalogService as service from '../../srv/cat-service';
 
 annotate service.salesorder with
-@(UI.LineItem: [
-    {
-        $Type: 'UI.DataField',
-        Label: '{i18n>DocumentId}',
-        Value: documentId,
-    },
-    {
-        $Type: 'UI.DataField',
-        Label: '{i18n>SalesOrder}',
-        Value: SalesOrder,
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: SoldToParty,
-        Label: '{i18n>SoldToParty}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Label: 'SalesOrderType',
-        Value: SalesOrderType,
-    },
-    {
-        $Type: 'UI.DataField',
-        Label: '{i18n>SalesOrganization}',
-        Value: SalesOrganization,
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: Status,
-        Label: '{i18n>Status}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Label: '{i18n>DistributionChannel}',
-        Value: DistributionChannel,
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: CustomerPaymentTerms,
-        Label: '{i18n>CustomerPaymentTerms}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: RequestedDeliveryDate,
-        Label: '{i18n>RequestedDeliveryDate}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: PricingDate,
-        Label: '{i18n>PricingDate}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: TransactionCurrency,
-        Label: '{i18n>TransactionCurrency}',
-    },
-],
-    UI.SelectionPresentationVariant #tableView : {
-        $Type : 'UI.SelectionPresentationVariantType',
-        PresentationVariant : {
-            $Type : 'UI.PresentationVariantType',
-            Visualizations : [
-                '@UI.LineItem',
-            ],
+@(
+    UI.LineItem                                           : [
+        {
+            $Type: 'UI.DataField',
+            Label: '{i18n>DocumentId}',
+            Value: documentId,
         },
-        SelectionVariant : {
-            $Type : 'UI.SelectionVariantType',
-            SelectOptions : [
-            ],
+        {
+            $Type: 'UI.DataField',
+            Label: '{i18n>SalesOrder}',
+            Value: SalesOrder,
         },
-        Text : 'Table View',
-    },
-    Analytics.AggregatedProperty #documentId_countdistinct : {
-        $Type : 'Analytics.AggregatedPropertyType',
-        Name : 'documentId_countdistinct',
-        AggregatableProperty : documentId,
-        AggregationMethod : 'countdistinct',
-        ![@Common.Label] : 'By Number of Documents',
-    },
-    UI.Chart #chartView : {
-        $Type : 'UI.ChartDefinitionType',
-        ChartType : #Column,
-        Dimensions : [
-            SalesOrganization,
-        ],
-        DynamicMeasures : [
-            '@Analytics.AggregatedProperty#documentId_countdistinct',
-        ],
-        Title : 'Orders By Sales Org',
-    },
-    UI.SelectionPresentationVariant #chartView : {
-        $Type : 'UI.SelectionPresentationVariantType',
-        PresentationVariant : {
-            $Type : 'UI.PresentationVariantType',
-            Visualizations : [
-                '@UI.Chart#chartView',
-            ],
+        {
+            $Type: 'UI.DataField',
+            Value: SoldToParty,
+            Label: '{i18n>SoldToParty}',
         },
-        SelectionVariant : {
-            $Type : 'UI.SelectionVariantType',
-            SelectOptions : [
-            ],
+        {
+            $Type: 'UI.DataField',
+            Label: 'SalesOrderType',
+            Value: SalesOrderType,
         },
-        Text : 'Chart View',
-    },);
+        {
+            $Type: 'UI.DataField',
+            Label: '{i18n>SalesOrganization}',
+            Value: SalesOrganization,
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: Status,
+            Label: '{i18n>Status}',
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: '{i18n>DistributionChannel}',
+            Value: DistributionChannel,
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: CustomerPaymentTerms,
+            Label: '{i18n>CustomerPaymentTerms}',
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: RequestedDeliveryDate,
+            Label: '{i18n>RequestedDeliveryDate}',
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: PricingDate,
+            Label: '{i18n>PricingDate}',
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: TransactionCurrency,
+            Label: '{i18n>TransactionCurrency}',
+        },
+    ],
+    UI.SelectionPresentationVariant #tableView            : {
+        $Type              : 'UI.SelectionPresentationVariantType',
+        PresentationVariant: {
+            $Type         : 'UI.PresentationVariantType',
+            Visualizations: ['@UI.LineItem', ],
+        },
+        SelectionVariant   : {
+            $Type        : 'UI.SelectionVariantType',
+            SelectOptions: [],
+        },
+        Text               : 'Table View',
+    },
+    Analytics.AggregatedProperty #documentId_countdistinct: {
+        $Type               : 'Analytics.AggregatedPropertyType',
+        Name                : 'documentId_countdistinct',
+        AggregatableProperty: documentId,
+        AggregationMethod   : 'countdistinct',
+        ![@Common.Label]    : 'By Number of Documents',
+    },
+    UI.Chart #chartView                                   : {
+        $Type          : 'UI.ChartDefinitionType',
+        ChartType      : #Column,
+        Dimensions     : [SalesOrganization, ],
+        DynamicMeasures: ['@Analytics.AggregatedProperty#documentId_countdistinct', ],
+        Title          : 'Orders By Sales Org',
+    },
+    UI.SelectionPresentationVariant #chartView            : {
+        $Type              : 'UI.SelectionPresentationVariantType',
+        PresentationVariant: {
+            $Type         : 'UI.PresentationVariantType',
+            Visualizations: ['@UI.Chart#chartView', ],
+        },
+        SelectionVariant   : {
+            $Type        : 'UI.SelectionVariantType',
+            SelectOptions: [],
+        },
+        Text               : 'Chart View',
+    },
+);
 
 annotate service.salesorder with @(
     UI.FieldGroup #GeneratedGroup: {
@@ -410,7 +402,7 @@ annotate service.salesorder with @UI: {
             }, ],
         }, ],
     },
-    SelectionVariant #open    : {
+    SelectionVariant #all     : {
         $Type           : 'UI.SelectionVariantType',
         ID              : 'open',
         Text            : 'open',
@@ -428,6 +420,16 @@ annotate service.salesorder with @UI: {
                 Low   : '5000',
             }, ],
         }, ],
+    },
+    SelectionVariant #open    : {
+        $Type           : 'UI.SelectionVariantType',
+        ID              : 'open',
+        Text            : 'open',
+        Parameters      : [
+
+        ],
+        FilterExpression: '',
+
     },
     SelectionVariant #accepted: {
         $Type           : 'UI.SelectionVariantType',
@@ -449,32 +451,32 @@ annotate service.salesorder with @UI: {
         }, ],
     }
 };
+
 annotate service.salesorder with @Aggregation.ApplySupported: {
-  Transformations       : [
-    'aggregate',
-    'topcount',
-    'bottomcount',
-    'identity',
-    'concat',
-    'groupby',
-    'filter',
-    'expand',
-    'search'
-  ],
-  Rollup                : #None,
-  PropertyRestrictions  : true,
-  GroupableProperties   : [
-    SalesOrder,
-    SalesOrderDate,
-    SalesOrderType,
-    SalesOrganization,
-    DistributionChannel,
-    createdBy,
-  ],
-  AggregatableProperties: [
-    {Property: documentId, }
-  ],
+    Transformations       : [
+        'aggregate',
+        'topcount',
+        'bottomcount',
+        'identity',
+        'concat',
+        'groupby',
+        'filter',
+        'expand',
+        'search'
+    ],
+    Rollup                : #None,
+    PropertyRestrictions  : true,
+    GroupableProperties   : [
+        SalesOrder,
+        SalesOrderDate,
+        SalesOrderType,
+        SalesOrganization,
+        DistributionChannel,
+        createdBy,
+    ],
+    AggregatableProperties: [{Property: documentId, }],
 };
+
 // annotate service.salesorder with @(
 //     UI.Chart #visualFilter : {
 //         $Type : 'UI.ChartDefinitionType',
@@ -508,6 +510,5 @@ annotate service.salesorder with @Aggregation.ApplySupported: {
 //     }
 // };
 annotate service.salesorder with {
-    SalesOrganization @Common.Label : 'Sales Organization'
+    SalesOrganization @Common.Label: 'Sales Organization'
 };
-

@@ -37,55 +37,55 @@ class SalesCatalogService extends cds.ApplicationService {
         });
 
         this.before('SAVE', salesorder, async (req) => {
-            if (!req.data.SalesOrder) {
-                try {
-                    const payload = {
-                        SalesOrderType: req.data.SalesOrderType,
-                        SalesOrganization: req.data.SalesOrganization,
-                        DistributionChannel: req.data.DistributionChannel,
-                        OrganizationDivision: req.data.OrganizationDivision,
-                        SoldToParty: req.data.SoldToParty,
-                        PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
-                        TransactionCurrency: req.data.TransactionCurrency,
-                        SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
-                        PricingDate: new Date(req.data.PricingDate).toISOString(),
-                        RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
-                        ShippingCondition: req.data.ShippingCondition,
-                        CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
-                        IncotermsClassification: req.data.IncotermsClassification,
-                        IncotermsLocation1: req.data.IncotermsLocation1,
-                        CustomerPaymentTerms: req.data.CustomerPaymentTerms,
-                        to_Item: {
-                            results: req.data.to_Item.map(item => ({
-                                SalesOrderItem: item.SalesOrderItem,
-                                Material: item.Material,
-                                SalesOrderItemText: item.SalesOrderItemText,
-                                RequestedQuantity: item.RequestedQuantity,
-                                RequestedQuantityUnit: item.RequestedQuantityUnit,
-                                ItemGrossWeight: item.ItemGrossWeight,
-                                ItemNetWeight: item.ItemNetWeight,
-                                ItemWeightUnit: item.ItemWeightUnit,
-                                NetAmount: item.NetAmount,
-                                MaterialGroup: item.MaterialGroup,
-                                ProductionPlant: item.ProductionPlant,
-                                StorageLocation: item.StorageLocation,
-                                DeliveryGroup: item.DeliveryGroup,
-                                ShippingPoint: item.ShippingPoint
-                            }))
-                        }
-                    };
+            // if (!req.data.SalesOrder) {
+            //     try {
+            //         const payload = {
+            //             SalesOrderType: req.data.SalesOrderType,
+            //             SalesOrganization: req.data.SalesOrganization,
+            //             DistributionChannel: req.data.DistributionChannel,
+            //             OrganizationDivision: req.data.OrganizationDivision,
+            //             SoldToParty: req.data.SoldToParty,
+            //             PurchaseOrderByCustomer: req.data.PurchaseOrderByCustomer,
+            //             TransactionCurrency: req.data.TransactionCurrency,
+            //             SalesOrderDate: new Date(req.data.SalesOrderDate).toISOString(),
+            //             PricingDate: new Date(req.data.PricingDate).toISOString(),
+            //             RequestedDeliveryDate: new Date(req.data.RequestedDeliveryDate).toISOString(),
+            //             ShippingCondition: req.data.ShippingCondition,
+            //             CompleteDeliveryIsDefined: req.data.CompleteDeliveryIsDefined ?? false,
+            //             IncotermsClassification: req.data.IncotermsClassification,
+            //             IncotermsLocation1: req.data.IncotermsLocation1,
+            //             CustomerPaymentTerms: req.data.CustomerPaymentTerms,
+            //             to_Item: {
+            //                 results: req.data.to_Item.map(item => ({
+            //                     SalesOrderItem: item.SalesOrderItem,
+            //                     Material: item.Material,
+            //                     SalesOrderItemText: item.SalesOrderItemText,
+            //                     RequestedQuantity: item.RequestedQuantity,
+            //                     RequestedQuantityUnit: item.RequestedQuantityUnit,
+            //                     ItemGrossWeight: item.ItemGrossWeight,
+            //                     ItemNetWeight: item.ItemNetWeight,
+            //                     ItemWeightUnit: item.ItemWeightUnit,
+            //                     NetAmount: item.NetAmount,
+            //                     MaterialGroup: item.MaterialGroup,
+            //                     ProductionPlant: item.ProductionPlant,
+            //                     StorageLocation: item.StorageLocation,
+            //                     DeliveryGroup: item.DeliveryGroup,
+            //                     ShippingPoint: item.ShippingPoint
+            //                 }))
+            //             }
+            //         };
 
-                    const response = await this.s4HanaSales.run(
-                        INSERT.into('A_SalesOrder').entries(payload)
-                    );
+            //         const response = await this.s4HanaSales.run(
+            //             INSERT.into('A_SalesOrder').entries(payload)
+            //         );
 
-                    console.log('S/4HANA response:', response);
-                    req.data.SalesOrder = response.SalesOrder;
-                } catch (error) {
-                    console.error('Error posting to S/4HANA:', error);
-                    req.error(500, 'Failed to create sales order in S/4HANA', error);
-                }
-            }
+            //         console.log('S/4HANA response:', response);
+            //         req.data.SalesOrder = response.SalesOrder;
+            //     } catch (error) {
+            //         console.error('Error posting to S/4HANA:', error);
+            //         req.error(500, 'Failed to create sales order in S/4HANA', error);
+            //     }
+            // }
         });
 
 

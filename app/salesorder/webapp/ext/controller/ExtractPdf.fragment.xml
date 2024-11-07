@@ -9,8 +9,10 @@
             <MessageStrip id="_IDGenMessageStrip" text="{i18n>attachmentMessage}" showIcon="true" showCloseButton="true" class="sapUiResponsiveMargin">
             </MessageStrip>
             <macros:Table metaPath="/salesorder/attachments/@com.sap.vocabularies.UI.v1.LineItem" disableCopyToClipboard="true" enableExport="false" isSearchable="false" enableFullScreen="false" enablePaste="false" personalization="false" enableAutoColumnWidth="true" id="LineItemTable" busy="{ui>/isBusy}" ignoredFields="note">
-                <macros:actions >
-                    <table:Action id="_IDGenAction" enabled="true" text="Submit" press="handler.onPress" modelContextChange="onPress"/>
+                <macros:actions  >
+                    <table:Action id="_IDGenAction"  text="Save" 
+                     press="handler.onPress"  anchor="StandardAction::Delete" placement="Before"
+                      enabled="true" />
                 </macros:actions>
             </macros:Table>
         </VBox>
