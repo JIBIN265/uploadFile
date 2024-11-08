@@ -20,6 +20,7 @@ sap.ui.define([
                 oContext:  oEvent.getSource().getBindingContext(),
                 oTable: this.byId('salesorder::salesorderList--fe::table::salesorder::LineItem::Table')
             };
+            const applyDoc = await contextData.oEditFlow.applyDocument(contextData.oContext)
             contextData.oEditFlow.saveDocument(contextData.oContext)
             .then(() => {
                 debugger

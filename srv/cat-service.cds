@@ -65,7 +65,7 @@ service SalesCatalogService {
 
     };
 
-    @Common.SideEffects #salesorder    : {TargetEntities: ['/SalesCatalogService.EntityContainer/salesorder']}
-    @Common.SideEffects #salesorderItem: {TargetEntities: ['/SalesCatalogService.EntityContainer/SalesOrderItem']}
-    action processDocument(salesOrder : salesorder) returns salesorder;
+    // @Common.SideEffects #salesorder    : {TargetEntities: ['/SalesCatalogService.EntityContainer/salesorder']}
+    // @Common.SideEffects #salesorderItem: {TargetEntities: ['/SalesCatalogService.EntityContainer/SalesOrderItem']}
+    // action processDocument(salesOrder : salesorder) returns salesorder;
 }

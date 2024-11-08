@@ -1,7 +1,7 @@
 _schema-version: "3.1"
 ID: salesorder
 description: Sales Order
-version: 1.0.20
+version: 1.0.3
 modules:
   - name: salesorder-srv
     type: nodejs

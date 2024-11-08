@@ -7,7 +7,7 @@
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",
-    "@cap-js/attachments": "^1.1.7",
+    "@cap-js/attachments": "^1.1.8",
     "@sap-cloud-sdk/connectivity": "^3.9.0",
     "@sap-cloud-sdk/http-client": "^3.9.0",
     "@sap-cloud-sdk/resilience": "^3.9.0",
@@ -26,10 +26,11 @@
     "formidable": "^3.5.1",
     "mbt": "^1.2.31",
     "passport": "^0.7.0",
-    "querystring": "^0.2.1"
+    "querystring": "^0.2.1",
+    "stream-to-blob": "^2.0.1"
   },
   "peerDependencies": {
-    "@sap/cds": "^8.4.0"
+    "@sap/cds": "^8.4.1"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^1.4.0",
