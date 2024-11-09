@@ -81,7 +81,11 @@
       },
       "[hybrid]": {
         "auth": "xsuaa",
-        "db": "hana"
+        "db": "hana",
+        "attachments": {
+          "kind": "s3",
+          "scan": true
+        }
       },
       "BPA_WORKFLOW": {
         "kind": "rest",

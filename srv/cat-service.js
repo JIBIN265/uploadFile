@@ -3,13 +3,24 @@ const SequenceHelper = require("./lib/SequenceHelper");
 const FormData = require('form-data');
 const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
 const streamToBlob = require('stream-to-blob')
-
+const LOG = cds.log('cat-service.js')
+const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const MAX_RETRIES = 30;
 const RETRY_DELAY_MS = 3000;
 
 class SalesCatalogService extends cds.ApplicationService {
     async init() {
         // Connect to all services at once
+        const creds = JSON.parse(process.env.VCAP_SERVICES).objectstore[0].credentials;
+        this.bucket = creds.bucket;
+        this.client = new S3Client({
+            region: creds.region,
+            credentials: {
+                accessKeyId: creds.access_key_id,
+                secretAccessKey: creds.secret_access_key,
+            },
+        });
+
         const [db, s4HanaSales, s4HanaBP, DocumentExtraction_Dest] = await Promise.all([
             cds.connect.to("db"),
             cds.connect.to("API_SALES_ORDER_SRV"),
@@ -24,6 +35,7 @@ class SalesCatalogService extends cds.ApplicationService {
         this.DocumentExtraction_Dest = DocumentExtraction_Dest;
 
         const { salesorder, attachments } = this.entities;
+        const AttachmentsSrv = await cds.connect.to("attachments");
 
         // Setup event handlers
         this.before("NEW", salesorder.drafts, async (req) => {
@@ -38,7 +50,7 @@ class SalesCatalogService extends cds.ApplicationService {
 
         this.after('SAVE', attachments.drafts, async (req) => {
             // debugger;
-        });  
+        });
 
         this.before('SAVE', salesorder, async (req) => {
             if (!req.data.SalesOrder) {
@@ -92,21 +104,37 @@ class SalesCatalogService extends cds.ApplicationService {
                     }
                 } else {
                     try {
-                        const content = await db.run(SELECT.one.from(attachments.drafts).
-                            columns('ID', 'url', 'mimeType', 'content').where({ up__ID: req.data.ID }));
-                        if (!content.content) {
-                            throw new Error("Content stream is null or undefined");
-                        }
-                        const blob = await streamToBlob(content.content);
 
-                        const buffer = await blob.arrayBuffer();
+                        const content = await cds.run(SELECT.one.from(attachments.drafts).
+                            columns('ID', 'url', 'content', 'mimeType').where({ up__ID: req.data.ID }));
+
+                        // const response = await SELECT.from(attachments, keys).columns("url");
+                        let content_s3;
+                        if (content?.url) {
+                            const Key = content.url;
+                            content_s3 = await this.client.send(
+                                new GetObjectCommand({
+                                    Bucket: this.bucket,
+                                    Key,
+                                })
+                            )
+                        };
+
+                        let fileContent
+                        try {
+                            fileContent = await streamToString(content_s3.Body)
+                        } catch (err) { };
+
+                        let keys = { ID: content.ID };
+                        LOG.info(req.data);
+                        LOG.info(content);
 
                         // Convert buffer to base64
-                        const base64String = Buffer.from(buffer).toString('base64');
+                        // const base64String = Buffer.from(fileContent).toString('base64');
 
                         // Process document
                         const form = new FormData();
-                        const fileBuffer = Buffer.from(base64String, 'base64');
+                        const fileBuffer = Buffer.from(fileContent, 'base64');
                         form.append('file', fileBuffer, {
                             filename: req.data.attachments[0].filename,
                             contentType: req.data.attachments[0].mimeType
@@ -159,13 +187,13 @@ class SalesCatalogService extends cds.ApplicationService {
 
                                 if (!jobDone) {
                                     status = `Extraction failed after ${MAX_RETRIES} attempts`;
-                                    await updateDraftOnly(oSalesorder.ID, status);
+                                    await updateDraftOnly(req.data.SalesOrder.ID, status);
                                     return;
                                 }
                             }
                         } catch (error) {
                             status = `Document extraction failed: ${error.message}`;
-                            await updateDraftOnly(oSalesorder.ID, status);
+                            await updateDraftOnly(req.data.SalesOrder.ID, status);
                             return;
                         }
 
@@ -226,7 +254,7 @@ class SalesCatalogService extends cds.ApplicationService {
                         // Check if both BP lookups failed
                         if (!soldToResponse && !shipToResponse) {
                             status = 'Both Business Partner lookups failed';
-                            await updateDraftOnly(oSalesorder.ID, status);
+                            await updateDraftOnly(req.data.SalesOrder.ID, status);
                             return;
                         }
 
@@ -283,6 +311,15 @@ class SalesCatalogService extends cds.ApplicationService {
                 }
             }
         });
+
+        async function streamToString(stream) {
+            const chunks = [];
+            return new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+                stream.on('error', (err) => reject(err))
+                stream.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));//resolve(Buffer.concat(chunks).toString('utf8')))
+            })
+        }
 
         this.on('postSalesWorkflow', async (req) => {
 
@@ -386,7 +423,14 @@ class SalesCatalogService extends cds.ApplicationService {
             }
         });
 
-
+        async function updateDraftOnly(ID, status) {
+            await db.run(
+                UPDATE(salesorder.drafts)
+                    .set({ Status: status })
+                    .where({ ID: ID })
+            );
+        }
+        
         await super.init();
     }
 }

@@ -1,0 +1,25 @@
+<mvc:View xmlns:core="sap.ui.core"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:macros="sap.fe.macros"
+	xmlns:html="http://www.w3.org/1999/xhtml" controllerName="salesorder.ext.view.ViewPdfPage">
+	<Page id="ViewPdfPage" title="{i18n>ViewPdfPageTitle}" showNavButton="true" navButtonPress=".onBack" enableScrolling="true">
+		<headerContent>
+			<OverflowToolbar id="_IDGenOverflowToolbar1">
+				<OverflowToolbarButton type="Transparent" icon="sap-icon://full-screen" press=".handleFullScreen" id="enterFullScreenBtn" tooltip="Enter Full Screen Mode" visible="true"/>
+				<OverflowToolbarButton type="Transparent" icon="sap-icon://exit-full-screen" press=".handleExitFullScreen" id="exitFullScreenBtn" tooltip="Exit Full Screen Mode" visible="false"/>
+				<OverflowToolbarButton type="Transparent" icon="sap-icon://decline" press=".handleClose" id="_IDGenOverflowToolbarButton" tooltip="Close middle column" visible="true"/>
+			</OverflowToolbar>
+		</headerContent>
+		<content>
+			<FlexBox id="_IDGenFlexBox" direction="Column" renderType="Div" class="sapUiSmallMargin" fitContainer="true">
+				<PDFViewer id="_IDGenPDFViewer" source="{content}" isTrustedSource="true" loaded=".isLoaded" height="700px" width="auto" title="{status}">
+					<layoutData>
+						<FlexItemData id="_IDGenFlexItemData" growFactor="1"/>
+					</layoutData>
+				</PDFViewer>
+			</FlexBox>
+		</content>
+	</Page>
+</mvc:View>

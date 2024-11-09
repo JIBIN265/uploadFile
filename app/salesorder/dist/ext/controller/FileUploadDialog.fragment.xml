@@ -1,0 +1,42 @@
+<core:FragmentDefinition xmlns="sap.m"
+    xmlns:core="sap.ui.core"   core:require="{handler: 'sap/fe/core/fpmExplorer/tableUpload/TableUpload'}"
+    xmlns:l="sap.ui.layout" 	
+    xmlns:u="sap.ui.unified" id="idFileUploadDialogFragmentDefinition" class="sapUiTinyMarginTop">
+
+    <Dialog id="idAddViaUrlDialog" title="PDF Upload"  type="Message" draggable="true" resizable="true" contentWidth="auto" contentHeight="auto" class="sapUiSmallMargin">
+        <content>
+            <!-- File Uploader Section -->
+            <l:VerticalLayout id="idGenVerticalLayout">
+                <HBox id="idFileGenHBox" backgroundDesign="Solid" fitContainer="true" justifyContent="Center" alignItems="Center">
+                    <VBox id="idUploadGenVBox" class="sapUiSmallMarginEnd" fitContainer="true" justifyContent="Center" alignItems="Center">
+                        <!-- Illustrated Message displayed when no file is uploaded -->
+                        <IllustratedMessage id="idIllustratedMessage" illustrationType="sapIllus-UploadToCloud" title="Extract Purchase Orders" description="Choose a PDF file for upload..."/>
+
+                        <!-- FileUploader Control -->
+                        <u:FileUploader style="Emphasized" id="idFileUploader" name="myFileUpload" uploadUrl="salesorder/attachments" tooltip="Upload your file from local server" fileType="pdf" buttonOnly="true" change=".onFileUpload"/>
+                    </VBox>
+                </HBox>
+            </l:VerticalLayout>
+
+            <!-- List Section with Custom List Item for Inputs -->
+            <List id="idUrlList">
+                <items>
+                    <CustomListItem id="idCustomListItem">
+                        <HBox id="idGenHBox" class="sapUiSmallMargin" alignItems="Center">
+                            <!-- Progress Indicator -->
+                            <VBox id="idProgressGenVBox" class="sapUiSmallMarginEnd" width="100%">
+                                <Label id="idProgressGenLabel" text="Progress"/>
+                                <ProgressIndicator id="idProgressIndicator" displayValue="0%"/>
+                            </VBox>
+                            <!-- Extract PDF Checkbox -->
+                            <VBox id="idGenVBox" class="sapUiSmallMarginEnd">
+                                <Label id="idExtractPDFLabel" text="Extract PDF" />
+                                <CheckBox id="idExtractPdfCheckBox" selected="true" enabled="false"/>
+                            </VBox>
+                        </HBox>
+                    </CustomListItem>
+                </items>
+            </List>
+        </content>
+    </Dialog>
+</core:FragmentDefinition>
