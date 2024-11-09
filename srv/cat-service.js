@@ -11,15 +11,7 @@ const RETRY_DELAY_MS = 3000;
 class SalesCatalogService extends cds.ApplicationService {
     async init() {
         // Connect to all services at once
-        const creds = JSON.parse(process.env.VCAP_SERVICES).objectstore[0].credentials;
-        this.bucket = creds.bucket;
-        this.client = new S3Client({
-            region: creds.region,
-            credentials: {
-                accessKeyId: creds.access_key_id,
-                secretAccessKey: creds.secret_access_key,
-            },
-        });
+        const s3 = await cds.connect.to("attachments");
 
         const [db, s4HanaSales, s4HanaBP, DocumentExtraction_Dest] = await Promise.all([
             cds.connect.to("db"),
@@ -35,7 +27,6 @@ class SalesCatalogService extends cds.ApplicationService {
         this.DocumentExtraction_Dest = DocumentExtraction_Dest;
 
         const { salesorder, attachments } = this.entities;
-        const AttachmentsSrv = await cds.connect.to("attachments");
 
         // Setup event handlers
         this.before("NEW", salesorder.drafts, async (req) => {
@@ -46,10 +37,6 @@ class SalesCatalogService extends cds.ApplicationService {
                 field: "documentId",
             }).getNextNumber();
             req.data.documentId = documentId.toString();
-        });
-
-        this.after('SAVE', attachments.drafts, async (req) => {
-            // debugger;
         });
 
         this.before('SAVE', salesorder, async (req) => {
@@ -112,9 +99,9 @@ class SalesCatalogService extends cds.ApplicationService {
                         let content_s3;
                         if (content?.url) {
                             const Key = content.url;
-                            content_s3 = await this.client.send(
+                            content_s3 = await s3.client.send(
                                 new GetObjectCommand({
-                                    Bucket: this.bucket,
+                                    Bucket: s3.bucket,
                                     Key,
                                 })
                             )
